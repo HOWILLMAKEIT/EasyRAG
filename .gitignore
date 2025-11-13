@@ -1,0 +1,31 @@
+# Env & secrets
+.env
+*.env
+**/.env
+**/.env.*
+!**/.env.example
+*.env.local
+**/*.env.local
+
+# Python
+__pycache__/
+*.pyc
+backend/.venv/
+
+# Node / Frontend
+frontend/vite-react/node_modules/
+frontend/vite-react/dist/
+
+# RAG data (do not version)
+backend/data/index/
+backend/data/raw/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Project-specific: do not push requirement docs
+/docs
+*.docx
+
+backend/logs/

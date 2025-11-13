@@ -1,0 +1,20 @@
+fastapi>=0.110.0
+uvicorn[standard]
+python-dotenv
+pydantic>=2.5.0
+pydantic-settings>=2.2.0
+
+# LlamaIndex split-packages（统一新版本 API）
+llama-index-core>=0.10.64
+llama-index-vector-stores-faiss>=0.2.0
+
+# 向量库（Windows/Conda 建议用 conda 安装 faiss-cpu）
+faiss-cpu
+
+# 文档解析与辅助
+pymupdf
+python-pptx
+tiktoken
+requests
+python-multipart
+dashscope
