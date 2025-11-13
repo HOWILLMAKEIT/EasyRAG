@@ -13,9 +13,9 @@
 </div>
 
 一个面向“计算机网络”课程的中文 RAG 助手：
-- 后端：FastAPI + LlamaIndex + FAISS（向量持久化）
+- 后端：FastAPI + LlamaIndex + FAISS
 - 嵌入：通义千问 Qwen（DashScope，text-embedding-v4，固定 1024 维）
-- 生成：DeepSeek（OpenAI 兼容聊天接口）
+- 生成：DeepSeek-V3.2-Exp 的非思考模式
 - 前端：Vite + React（TS），提供 Ingest/Ask 两个页面
 
 ---
