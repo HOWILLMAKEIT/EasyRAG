@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import tempfile
 import time
 from pathlib import Path
 from typing import List, Sequence
@@ -68,6 +69,73 @@ def ingest_corpus(rebuild: bool, settings: Settings | None = None) -> tuple[int,
     build_and_persist_index(nodes, cfg)
     file_names = {doc.metadata.get("source") or doc.doc_id for doc in documents}
     return len(file_names), len(nodes)
+
+
+async def ingest_uploaded_files(
+    files: List,  # List[UploadFile]
+    rebuild: bool,
+    settings: Settings | None = None,
+) -> tuple[int, int]:
+    """处理上传的文件并构建索引。"""
+    cfg = settings or get_settings()
+    
+    # 如果需要重建，清空索引
+    if rebuild and cfg.index_dir.exists():
+        logger.info("清空已有索引目录：%s", cfg.index_dir)
+        shutil.rmtree(cfg.index_dir)
+        cfg.index_dir.mkdir(parents=True, exist_ok=True)
+    
+    # 创建临时目录保存上传的文件
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        logger.info(f"临时目录: {temp_path}")
+        
+        # 保存上传的文件
+        saved_files = []
+        for file in files:
+            file_path = temp_path / file.filename
+            content = await file.read()
+            file_path.write_bytes(content)
+            saved_files.append(file.filename)
+            logger.info(f"已保存上传文件: {file.filename} ({len(content)} bytes)")
+        
+        # 加载文档
+        reader = SimpleDirectoryReader(
+            input_dir=str(temp_path),
+            required_exts=SUPPORTED_EXTS,
+            recursive=False,
+            filename_as_id=True,
+            file_metadata=lambda fp: {"source": Path(fp).name},
+        )
+        documents = reader.load_data()
+        
+        if not documents:
+            raise ValueError("无法解析上传的文件，请检查文件格式")
+        
+        logger.info(f"已解析文档：{len(documents)} 个")
+        
+        # 补充元信息
+        for doc in documents:
+            doc.metadata.setdefault(
+                "source", 
+                doc.metadata.get("file_name") or doc.metadata.get("file_path")
+            )
+        
+        # 设置全局嵌入模型
+        embed_model = get_embedding_model()
+        LISettings.embed_model = embed_model
+        
+        # 切分节点
+        nodes = _prepare_nodes(documents, cfg)
+        logger.info(
+            f"已切分节点：{len(nodes)} 个（chunk_size={cfg.chunk_size}，overlap={cfg.chunk_overlap}）"
+        )
+        
+        # 构建索引
+        build_and_persist_index(nodes, cfg)
+        
+        file_names = {doc.metadata.get("source") or doc.doc_id for doc in documents}
+        return len(file_names), len(nodes)
 
 
 def _context_budget_chars(settings: Settings) -> int:
