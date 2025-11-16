@@ -75,6 +75,10 @@ npm run dev  # http://localhost:5173
   - Body: `{ "question": "中文问题", "top_k": 6 }`
   - 返回：`{ answer, contexts[], latency_ms }`
 
+- `POST /ingest/upload`
+  - Body: `{ "files": ["./data/raw/xxx.pdf"] }`
+  - 用于上传文件并构建索引
+
 - `GET /health`
   - 存活检查
 
