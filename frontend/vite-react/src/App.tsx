@@ -1,310 +1,547 @@
-import { useState } from "react";
-import type { FormEvent } from "react";
+import { useState, useRef, useEffect } from "react";
+import { FaPaperPlane, FaDatabase, FaCog,FaUpload,FaTrash,FaFile,FaAngleDoubleLeft, FaAngleDoubleRight,FaPlusCircle,FaDownload} from "react-icons/fa";
+import { v4 as uuidv4 } from 'uuid';
 import "./App.css";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
 
-type ContextChunk = {
-  source: string;
-  page?: string | null;
-  text: string;
+type Message = {
+  role: "user" | "ai";
+  content: string;
+  sources?: { source: string; page?: string }[];
 };
 
-type AskResult = {
-  answer: string;
-  contexts: ContextChunk[];
-  latency_ms: number;
+type ChatSession = {
+  id: string;
+  title: string;
 };
+
+type SearchInputProps = {
+  value: string;
+  onChange: (val: string) => void;
+  onSend: () => void;
+  loading: boolean;
+};
+
+const SearchInput = ({ value, onChange, onSend, loading }: SearchInputProps) => (
+  <div className="input-capsule">
+    <textarea
+      rows={1}
+      placeholder="例如：TCP 三次握手的目的是什么？"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      
+      onInput={(e) => {
+        const target = e.currentTarget;
+        target.style.height = "auto"; 
+        const newHeight = Math.min(target.scrollHeight, 120); 
+        target.style.height = `${newHeight}px`;
+      }}
+
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          onSend();
+        }
+      }}
+    />
+    <button className="send-btn" onClick={onSend} disabled={loading || !value}>
+      {loading ? "..." : <FaPaperPlane />}
+    </button>
+  </div>
+);
+
 
 function App() {
-  const [activeTab, setActiveTab] = useState<"ingest" | "ask">("ingest");
-
-  // 上传相关状态
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [rebuild, setRebuild] = useState(false);
-  const [uploadLoading, setUploadLoading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
-
-  // 问答相关状态
-  const [question, setQuestion] = useState("");
+  const [view, setView] = useState<"chat" | "ingest">("chat");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputValue, setInputValue] = useState("");
+  const [loading, setLoading] = useState(false);
   const [topK, setTopK] = useState(6);
-  const [askLoading, setAskLoading] = useState(false);
-  const [askError, setAskError] = useState<string | null>(null);
-  const [answer, setAnswer] = useState("");
-  const [contexts, setContexts] = useState<ContextChunk[]>([]);
-  const [latency, setLatency] = useState<number | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [ingestLoading, setIngestLoading] = useState(false);
+  const [ingestError, setIngestError] = useState<string | null>(null);
+  const [ingestSuccess, setIngestSuccess] = useState<string | null>(null);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [sessions, setSessions] = useState<ChatSession[]>([]); 
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    console.log("正在尝试读取本地会话列表...");
+    const savedSessionsRaw = localStorage.getItem("chat_sessions");
+    
+    if (savedSessionsRaw) {
+      console.log("找到了已保存的列表");
+      try {
+        const savedSessions = JSON.parse(savedSessionsRaw);
+        if (Array.isArray(savedSessions)) { 
+          setSessions(savedSessions); //显示在侧边栏
+        }
+      } catch (e) {
+        console.error("读取会话列表失败:", e);
+        localStorage.removeItem("chat_sessions");
+      }
+    } else {
+      console.log("没有找到本地会话。");
+    }
+  }, []);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setIngestError(null);
+    setIngestSuccess(null);
     if (event.target.files) {
       const newFiles = Array.from(event.target.files);
-      // 累积添加文件，避免重复
-      setSelectedFiles((prev) => {
+      setFiles((prev) => {
         const existingNames = new Set(prev.map(f => f.name));
-        const uniqueNewFiles = newFiles.filter(f => !existingNames.has(f.name));
-        return [...prev, ...uniqueNewFiles];
+        const trulyNew = newFiles.filter(nf => !existingNames.has(nf.name));
+        return [...prev, ...trulyNew];
       });
-      setUploadError(null);
-      setUploadSuccess(null);
-      // 重置文件输入框，允许重复选择同一个文件
-      event.target.value = "";
     }
   };
 
-  const handleRemoveFile = (index: number) => {
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+  const handleRemoveFile = (fileName: string) => {
+    setFiles((prev) => prev.filter(f => f.name !== fileName));
   };
 
   const handleClearFiles = () => {
-    setSelectedFiles([]);
-    setUploadError(null);
-    setUploadSuccess(null);
+    setFiles([]);
+    setIngestError(null);
+    setIngestSuccess(null);
   };
 
-  const handleUpload = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    
-    if (selectedFiles.length === 0) {
-      setUploadError("请选择要上传的文件");
+  const handleUpload = async () => {
+    if (files.length === 0) {
+      setIngestError("请至少选择一个文件");
       return;
     }
 
-    setUploadLoading(true);
-    setUploadError(null);
-    setUploadSuccess(null);
+
+
+
+    setIngestLoading(true);
+    setIngestError(null);
+    setIngestSuccess(null);
+    
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append("files", file);
+    });
 
     try {
-      const formData = new FormData();
-      selectedFiles.forEach((file) => {
-        formData.append("files", file);
-      });
-      formData.append("rebuild", String(rebuild));
-
-      const response = await fetch(`${API_BASE}/ingest/upload`, {
+      const res = await fetch(`${API_BASE}/ingest`, {
         method: "POST",
         body: formData,
       });
-
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(body.detail ?? response.statusText);
+      
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail ?? res.statusText);
       }
 
-      const data = await response.json();
-      setUploadSuccess(`索引构建完成：${data.files} 个文件，${data.chunks} 个切片`);
-      setSelectedFiles([]);
-      // 重置文件选择器
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      if (fileInput) fileInput.value = "";
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "上传失败";
-      setUploadError(message);
+      const data = await res.json();
+      setIngestSuccess(`成功索引 ${data.indexed_files_count} 个文档！`);
+      setFiles([]); // 上传成功后清空列表
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "上传和索引失败，请检查后端服务";
+      setIngestError(message);
     } finally {
-      setUploadLoading(false);
+      setIngestLoading(false);
     }
   };
 
-  const submitQuestion = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const trimmedQuestion = question.trim();
-    if (!trimmedQuestion) {
-      setAskError("请先输入问题");
-      return;
+ const handleNewChat = () => {
+    console.log("正在创建新会话");
+    setMessages([]);
+    setActiveSessionId(null);
+    setView("chat");
+  };
+
+  const handleSelectSession = (sessionId: string) => {
+    console.log(`正在加载会话: ${sessionId}`);
+    setActiveSessionId(sessionId);
+    setView("chat");
+    const messageKey = "chat_messages_" + sessionId;
+    
+    //从localStorage读取会话的聊天记录
+    const savedMessagesRaw = localStorage.getItem(messageKey);
+
+    if (savedMessagesRaw) {
+      console.log("找到了这个会话的聊天记录!");
+      try {
+        const savedMessages = JSON.parse(savedMessagesRaw);
+        setMessages(savedMessages);
+      } catch (e) {
+        console.error("读取聊天记录失败:", e);
+        setMessages([]); 
+        localStorage.removeItem(messageKey); 
+      }
+    } else {
+      console.warn("没有找到这个会话的聊天记录!");
+      setMessages([]);
     }
-    setAskLoading(true);
-    setAskError(null);
-    setAnswer("");
-    setContexts([]);
-    setLatency(null);
+  };
+  const handleDeleteSession = (sessionIdToDelete: string) => {
+
+    const newSessions = sessions.filter(session => session.id !== sessionIdToDelete);
+    setSessions(newSessions);
 
     try {
-      const payload = { question: trimmedQuestion, top_k: topK };
-      const response = await fetch(`${API_BASE}/ask`, {
+      localStorage.setItem("chat_sessions", JSON.stringify(newSessions));
+    } catch (e) {
+      console.error("更新会话列表(localStorage)失败:", e);
+    }
+    
+    try {
+      const messageKey = "chat_messages_" + sessionIdToDelete;
+      localStorage.removeItem(messageKey);
+    } catch (e) {
+      console.error("删除聊天记录(localStorage)失败:", e);
+    }
+
+    if (activeSessionId === sessionIdToDelete) {
+      handleNewChat(); 
+    }
+  };
+ const handleDownloadSession = (sessionId: string) => {
+    const session = sessions.find(s => s.id === sessionId);
+    if (!session) return;
+
+    const key = "chat_messages_" + sessionId;
+    const msgsRaw = localStorage.getItem(key);
+    const messages = msgsRaw ? JSON.parse(msgsRaw) : [];
+
+    const exportData = {
+      id: session.id,
+      title: session.title,
+      timestamp: new Date().toISOString(),
+      messages: messages
+    };
+
+    const jsonString = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+
+    const safeTitle = session.title.slice(0, 15).replace(/[\\/:*?"<>|]/g, "_");
+    a.download = `chat_${safeTitle}_${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+  const handleSend = async () => {
+    if (!inputValue.trim() || loading) return;
+
+    const question = inputValue.trim();
+    const userMessage: Message = { role: "user", content: question };
+    
+    setInputValue(""); 
+    const textarea = document.querySelector(".input-capsule textarea") as HTMLTextAreaElement;
+    if (textarea) { textarea.style.height = "auto"; }
+
+    setMessages(prev => [...prev, userMessage]);
+    setLoading(true);
+
+    let currentSessionId = activeSessionId;
+    let isNewSession = false;
+    let currentSessions = sessions; 
+
+    if (currentSessionId === null) {
+      isNewSession = true;
+      console.log("这是一个新会话。正在创建...");
+      
+      currentSessionId = uuidv4(); 
+      const newSession: ChatSession = { id: currentSessionId, title: question };
+      
+      setActiveSessionId(currentSessionId);
+      currentSessions = [newSession, ...sessions];
+      setSessions(currentSessions);
+
+      try {
+        localStorage.setItem("chat_sessions", JSON.stringify(currentSessions));
+      } catch (e) {
+        console.error("保存会话列表失败:", e);
+      }
+    }
+
+    let aiMessage: Message = { role: "ai", content: "..." }; 
+    try {
+      const res = await fetch(`${API_BASE}/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ 
+          question: question, 
+          top_k: topK //
+        })
       });
-
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(body.detail ?? response.statusText);
+      
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail ?? `请求失败: ${res.statusText}`);
       }
+      const data = await res.json();
+      aiMessage = { role: "ai", content: data.answer, sources: data.contexts };
 
-      const data = (await response.json()) as AskResult;
-      setAnswer(data.answer);
-      setContexts(data.contexts);
-      setLatency(data.latency_ms);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "问答失败";
-      setAskError(message);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "抱歉，连接后端失败。";
+      aiMessage = { role: "ai", content: message };
     } finally {
-      setAskLoading(false);
+      setLoading(false);
+      
+      setMessages(prevMessages => {
+        const updatedMessages = [...prevMessages, aiMessage];
+        
+        try {
+          localStorage.setItem("chat_messages_" + currentSessionId, JSON.stringify(updatedMessages));
+          console.log(`会话 ${currentSessionId} 已保存!`);
+        } catch (e) {
+          console.error("保存聊天记录失败:", e);
+        }
+        
+        return updatedMessages;
+      });
     }
   };
 
-  return (
-    <div className="app">
-      <header>
-        <div>
-          <p className="eyebrow">RAG · 计算机网络课程</p>
-          <h1>netMind 智能问答助手</h1>
-          <p className="subtitle">在线上传文档构建索引，智能问答随时体验。</p>
-        </div>
-        <nav className="tab-bar">
-          <button className={activeTab === "ingest" ? "active" : ""} onClick={() => setActiveTab("ingest")}>
-            Ingest 数据
-          </button>
-          <button className={activeTab === "ask" ? "active" : ""} onClick={() => setActiveTab("ask")}>
-            Ask 问答
-          </button>
-        </nav>
-      </header>
+  //类名数组，用于管理侧边栏是否收起
+const sidebarClasses = ["sidebar"];
 
-      {activeTab === "ingest" && (
-        <section className="panel">
-          <h2>上传文档构建索引</h2>
-          <form onSubmit={handleUpload} className="form">
-            <div className="field">
-              <span>选择文件（支持 PDF / PPTX / Markdown）：</span>
-              <div className="file-upload-wrapper">
-                <input
-                  type="file"
-                  id="file-input"
-                  multiple
-                  accept=".pdf,.pptx,.md"
-                  onChange={handleFileChange}
-                  disabled={uploadLoading}
-                />
-                <label 
-                  htmlFor="file-input" 
-                  className={`file-upload-label ${uploadLoading ? 'disabled' : ''}`}
+if (isSidebarCollapsed) {
+  sidebarClasses.push("collapsed");
+}
+  return (
+    <div className="app-container">
+      <aside className={sidebarClasses.join(" ")}>
+        <div className="sidebar-title">
+          <span className="nav-text">NetMind 助手</span>
+        </div>
+        <button className="nav-btn new-chat-btn" onClick={handleNewChat}>
+          <FaPlusCircle />
+          <span className="nav-text">新建对话</span>
+        </button>
+        
+        <div className="session-list">
+          {sessions.map(session => (
+            <button 
+              key={session.id}
+              className={`nav-btn session-item ${session.id === activeSessionId ? 'active' : ''}`}
+              onClick={() => handleSelectSession(session.id)}
+            >
+              <span className="nav-text session-title-text">{session.title}</span>
+              
+              <span className="action-group">
+                {/*下载按钮*/}
+                <button 
+                  className="action-btn download-btn"
+                  onClick={(e) => {
+                    e.stopPropagation(); 
+                    handleDownloadSession(session.id);
+                  }}
+                  title="保存到本地"
                 >
-                  <div className="file-upload-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                  </div>
-                  <span>
-                    {selectedFiles.length > 0 
-                      ? `已选择 ${selectedFiles.length} 个文件` 
-                      : '点击或拖拽文件到此处上传'}
-                  </span>
-                </label>
-              </div>
+                  <FaDownload />
+                </button>
+
+                {/*删除按钮*/}
+                <button 
+                  className="action-btn delete-btn"
+                  onClick={(e) => {
+                    e.stopPropagation(); 
+                    handleDeleteSession(session.id);
+                  }}
+                  title="删除"
+                >
+                  <FaTrash />
+                </button>
+              </span>
+            </button>
+          ))}
+        </div>
+  
+        <button 
+          className={`nav-btn ${view === 'ingest' ? 'active' : ''}`}
+          onClick={() => setView('ingest')}
+        >
+          <FaDatabase /> 
+          <span className="nav-text">知识库管理</span>
+        </button>
+
+        <div style={{flex: 1}}></div> 
+
+        <div className="settings-block">
+          <div className="sidebar-title" 
+                onClick={() => 
+                  {
+                    if (isSidebarCollapsed) {
+                      setIsSidebarCollapsed(false);
+                    }
+                  }
+              } 
+          style={{display:'flex', alignItems:'center'}}>
+            
+            <FaCog /> 
+            <span className="nav-text" style={{marginLeft: 6}}>检索设置</span>
+          </div>
+        
+          <div className="settings-content"> 
+            <div style={{fontSize: '0.9rem', color: '#666', marginBottom: 8}}>
+              <span className="nav-text">参考片段数 (Top-K): <strong>{topK}</strong></span>
             </div>
-            {selectedFiles.length > 0 && (
-              <div className="file-list">
-                <div className="file-list-header">
-                  <p>已选择 {selectedFiles.length} 个文件：</p>
-                  <button 
-                    type="button"
-                    className="clear-files-btn"
-                    onClick={handleClearFiles}
-                    disabled={uploadLoading}
-                  >
-                    清空全部
-                  </button>
+            <input 
+              type="range" 
+              min="1" 
+              max="10" 
+              step="1"
+              value={topK}
+              onChange={(e) => setTopK(Number(e.target.value))}
+              style={{width: '100%', cursor: 'pointer', marginBottom: '15px'}} 
+            />
+
+            <div style={{borderTop: '1px dashed #e5e5e5', paddingTop: '10px'}}>
+             
+            </div>
+          </div>
+        </div>
+
+        <button 
+          className="nav-btn toggle-btn"
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        >
+          {isSidebarCollapsed ? <FaAngleDoubleRight /> : <FaAngleDoubleLeft />}
+          <span className="nav-text" style={{marginLeft: 8}}>收起侧边栏</span>
+        </button>
+        
+      </aside>
+
+      <main className="main-content">
+       {view === 'ingest' && (
+          
+          <div className="ingest-panel">
+            <h2 className="ingest-title">
+              知识库管理
+            </h2>
+            
+            <p className="ingest-subtitle">
+              在这里上传、管理和索引你的课程文档（PDF, PPTX, MD）。
+            </p>
+            
+            <div className="ingest-form">
+              <label className="file-drop-area">
+                <input 
+                  type="file" 
+                  multiple 
+                  onChange={handleFileChange} 
+                  accept=".pdf,.pptx,.md" 
+                  disabled={ingestLoading}
+                />
+                <FaUpload style={{fontSize: '1.5rem', color: '#64748b'}}/>
+                <span className="file-drop-text">
+                  点击选择文件，或拖拽到此处
+                </span>
+                <span className="file-drop-hint">
+                  支持 PDF, PPTX, Markdown
+                </span>
+              </label>
+
+              {files.length > 0 && (
+                <div className="file-list-preview">
+                  <div className="file-list-header">
+                    <span>已选 {files.length} 个文件</span>
+                    <button onClick={handleClearFiles} className="clear-btn" disabled={ingestLoading}>
+                      <FaTrash /> 清空列表
+                    </button>
+                  </div>
+                  <ul className="file-list">
+                    {files.map(file => (
+                      <li key={file.name} className="file-item">
+                        <FaFile style={{color: '#94a3b8'}}/>
+                        <span className="file-name">{file.name}</span>
+                        <span className="file-size">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                        <button onClick={() => handleRemoveFile(file.name)} className="remove-btn" disabled={ingestLoading}>
+                          &times;
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <ul>
-                  {selectedFiles.map((file, index) => (
-                    <li key={index}>
-                      <span className="file-info">
-                        {file.name} ({Math.round(file.size / 1024)} KB)
-                      </span>
-                      <button
-                        type="button"
-                        className="remove-file-btn"
-                        onClick={() => handleRemoveFile(index)}
-                        disabled={uploadLoading}
-                        title="移除此文件"
-                      >
-                        ✕
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+              )}
+
+              <button 
+                className="upload-btn" 
+                onClick={handleUpload} 
+                disabled={ingestLoading || files.length === 0}
+              >
+                {ingestLoading ? "索引中..." : `开始索引 ${files.length} 个文件`}
+              </button>
+
+              {ingestError && <p className="ingest-message error">{ingestError}</p>}
+              {ingestSuccess && <p className="ingest-message success">{ingestSuccess}</p>}
+            </div>
+          </div>
+        )}
+
+        {view === 'chat' && (
+          <>
+         
+            {messages.length === 0 ? (
+              <div className="welcome-view">
+                <div className="hero-text">
+                  <p style={{color: '#2563eb', fontWeight: 'bold', marginBottom: 10}}>RAG · 计算机网络课程</p>
+                  <h1>您今天想学习什么计算机网络知识？</h1>
+                  <p className="subtitle">我是 NetMind 智能助手，有什么可以帮你？</p>
+                </div>
+                
+              </div>
+            ) : (
+              <div className="chat-view">
+                {messages.map((msg, idx) => (
+                  <div key={idx} className={`message-item ${msg.role}`}>
+                    <div className="message-content">
+                      <div className="msg-role-name">
+                        {msg.role === 'ai' ? 'NetMind' : '你'}
+                      </div>
+                      <div style={{whiteSpace: 'pre-wrap'}}>{msg.content}</div>
+                      {msg.sources && (
+                        <div style={{
+                          marginTop: 10, 
+                          fontSize: '0.85rem', 
+                          color: '#555',     
+                          background: 'rgba(0,0,0,0.05)', 
+                          padding: '6px 10px', 
+                          borderRadius: 6, 
+                          display: 'block'
+                        }}>
+                          📚 参考: {msg.sources.map(s => s.source).join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
               </div>
             )}
-            <label className="field-inline">
-              <input
-                type="checkbox"
-                checked={rebuild}
-                onChange={(e) => setRebuild(e.target.checked)}
-                disabled={uploadLoading}
-              />
-              <span>清空旧索引重建（Rebuild）</span>
-            </label>
-            <button 
-              type="submit" 
-              disabled={uploadLoading || selectedFiles.length === 0}
-              className={uploadLoading ? "loading" : ""}
-            >
-              {uploadLoading ? "处理中，请稍候..." : selectedFiles.length > 0 ? `🚀 上传并构建索引 (${selectedFiles.length} 个文件)` : "📤 上传并构建索引"}
-            </button>
-          </form>
-          {uploadError && <p className="error">{uploadError}</p>}
-          {uploadSuccess && <p className="success">{uploadSuccess}</p>}
-          
-          <div className="hint-box">
-            <h3>命令行方式（备选）</h3>
-            <p>也可以将文档放入 <code>backend/data/raw/</code>，然后在终端运行：</p>
-            <pre>cd backend{"\n"}python build_index.py --rebuild</pre>
-          </div>
-        </section>
-      )}
 
-      {activeTab === "ask" && (
-        <section className="panel">
-          <form onSubmit={submitQuestion} className="form">
-            <label className="field">
-              <span>问题（中文）：</span>
-              <textarea
-                rows={4}
-                placeholder="例如：TCP 三次握手的目的是什么？"
-                value={question}
-                onChange={(event) => setQuestion(event.target.value)}
+           
+            <div className={`input-area-wrapper ${messages.length > 0 ? "fixed-bottom" : ""}`}>
+              <SearchInput 
+                value={inputValue}
+                onChange={setInputValue}
+                onSend={handleSend}
+                loading={loading}
               />
-            </label>
-            <label className="field-inline">
-              <span>Top-K：</span>
-              <input
-                type="number"
-                min={1}
-                max={10}
-                value={topK}
-                onChange={(event) => setTopK(Number(event.target.value))}
-              />
-            </label>
-            <button type="submit" disabled={askLoading}>
-              {askLoading ? "检索生成中…" : "发送问题"}
-            </button>
-          </form>
-          {askError && <p className="error">{askError}</p>}
-          {answer && (
-            <div className="answer-card">
-              <div className="answer-header">
-                <h2>答案</h2>
-                {latency !== null && <span>耗时：{latency} ms</span>}
-              </div>
-              <p className="answer-text">{answer}</p>
-              <div className="contexts">
-                <h3>引用片段</h3>
-                <ol>
-                  {contexts.map((ctx, index) => (
-                    <li key={`${ctx.source}-${index}`}>
-                      <p className="context-source">
-                        {ctx.source}
-                        {ctx.page && <span> · {ctx.page}</span>}
-                      </p>
-                      <p>{ctx.text}</p>
-                    </li>
-                  ))}
-                </ol>
-              </div>
             </div>
-          )}
-        </section>
-      )}
+          </>
+        )}
+      
+      </main>
     </div>
   );
 }
