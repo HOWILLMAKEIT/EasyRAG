@@ -135,7 +135,7 @@ function App() {
     });
 
     try {
-      const res = await fetch(`${API_BASE}/ingest`, {
+      const res = await fetch(`${API_BASE}/ingest/upload`, {
         method: "POST",
         body: formData,
       });
@@ -146,7 +146,7 @@ function App() {
       }
 
       const data = await res.json();
-      setIngestSuccess(`成功索引 ${data.indexed_files_count} 个文档！`);
+      setIngestSuccess(`成功索引 ${data.files} 个文档！`);
       setFiles([]); // 上传成功后清空列表
     } catch (e) {
       const message = e instanceof Error ? e.message : "上传和索引失败，请检查后端服务";
@@ -251,12 +251,9 @@ function App() {
     setLoading(true);
 
     let currentSessionId = activeSessionId;
-    let isNewSession = false;
     let currentSessions = sessions; 
 
     if (currentSessionId === null) {
-      isNewSession = true;
-      console.log("这是一个新会话。正在创建...");
       
       currentSessionId = uuidv4(); 
       const newSession: ChatSession = { id: currentSessionId, title: question };
