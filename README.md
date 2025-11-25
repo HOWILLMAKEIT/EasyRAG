@@ -1,8 +1,6 @@
 <div align="center">
   <img src="assert/logo.png" alt="EasyRAG Logo" width="450" />
-  <p style="margin-top: 0.8em; font-size: 1.5rem;">
-    通用中文 RAG 助手
-  </p>
+  <h2>通用中文 RAG 助手</h2>
   <p>
     <!-- Tech stack row 1 -->
     <img src="https://img.shields.io/badge/PYTHON-000000?style=flat-square&logo=python&logoColor=ffffff&labelColor=000000&color=000000" alt="Python" />
