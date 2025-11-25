@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assert/logo.png" alt="EasyRAG Logo" width="300" />
+  <img src="assert/logo.png" alt="EasyRAG Logo" width="350" />
   <h2>通用中文 RAG 助手</h2>
   <p>
     <!-- Tech stack row 1 -->
