@@ -2,13 +2,13 @@
   <h1 style="margin-bottom: 0.2em;">EasyRAG</h1>
   <p style="margin-top: 0;">通用中文 RAG 助手（示例语料：计算机网络课程）</p>
   <p>
-    <img src="https://img.shields.io/badge/Python-3.11%2B-blue?style=flat-square" alt="Python 3.11+" />
-    <img src="https://img.shields.io/badge/Backend-FastAPI-brightgreen?style=flat-square" alt="Backend: FastAPI" />
-    <img src="https://img.shields.io/badge/LlamaIndex-RAG-orange?style=flat-square" alt="LlamaIndex" />
-    <img src="https://img.shields.io/badge/Embedding-Qwen%20v4%20(1024d)-yellowgreen?style=flat-square" alt="Qwen 1024d" />
-    <img src="https://img.shields.io/badge/Vector%20Store-FAISS-lightgrey?style=flat-square" alt="FAISS" />
-    <img src="https://img.shields.io/badge/Frontend-Vite%20%2B%20React-blueviolet?style=flat-square" alt="Vite + React" />
-    <img src="https://img.shields.io/badge/DeepSeek-deepseek--chat-orange?style=flat-square" alt="DeepSeek: deepseek-chat" />
+    <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.11+" />
+    <img src="https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="Backend: FastAPI" />
+    <img src="https://img.shields.io/badge/RAG-LlamaIndex-FF9800?style=for-the-badge" alt="LlamaIndex" />
+    <img src="https://img.shields.io/badge/Embedding-Qwen%20v4%20(1024d)-4CAF50?style=for-the-badge" alt="Qwen 1024d" />
+    <img src="https://img.shields.io/badge/Vector%20Store-FAISS-607D8B?style=for-the-badge" alt="FAISS" />
+    <img src="https://img.shields.io/badge/LLM-DeepSeek--chat-E91E63?style=for-the-badge" alt="DeepSeek: deepseek-chat" />
+    <img src="https://img.shields.io/badge/Frontend-Vite%20%2B%20React-3F51B5?style=for-the-badge&logo=react&logoColor=white" alt="Vite + React" />
   </p>
 </div>
 
