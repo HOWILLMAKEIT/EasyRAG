@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assert/logo.png" alt="EasyRAG Logo" width="450" style="margin-left: 85px;" />
+  <img src="assert/logo.png" alt="EasyRAG Logo" width="450" />
   <p style="margin-top: 0.8em; font-size: 1.5rem;">
     通用中文 RAG 助手
   </p>
@@ -25,7 +25,7 @@
   </p>
 </div>
 
-一个轻量、可复用的中文 RAG 助手（默认示例面向“计算机网络”课程，但可替换为任意自有语料），支持**多知识库管理**：
+一个轻量、可复用的中文 RAG 助手，支持**多知识库管理**：
 - 后端：FastAPI + LlamaIndex + FAISS
 - 嵌入：通义千问 Qwen（DashScope，text-embedding-v4，固定 1024 维）
 - 生成：DeepSeek-V3.2-Exp 的非思考模式
