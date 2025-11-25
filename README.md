@@ -1,20 +1,27 @@
 <div align="center">
-  <div style="display: inline-block; padding: 18px 24px; border-radius: 18px; background: #ffffff; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06); margin-bottom: 10px;">
-    <img src="assert/logo.png" alt="EasyRAG Logo" width="220" />
-  </div>
-  <p style="margin-top: 0; font-size: 1.05rem;">
+  <img src="assert/logo.png" alt="EasyRAG Logo" width="260" />
+  <p style="margin-top: 0.8em; font-size: 1.05rem;">
     通用中文 RAG 助手
   </p>
   <p>
-    <img src="https://img.shields.io/badge/Python-3.11%2B-2b5bba?style=for-the-badge&logo=python&logoColor=ffffff" alt="Python 3.11+" />
-    <img src="https://img.shields.io/badge/Backend-FastAPI-05998b?style=for-the-badge&logo=fastapi&logoColor=ffffff" alt="Backend: FastAPI" />
-    <img src="https://img.shields.io/badge/RAG-LlamaIndex-f57c00?style=for-the-badge" alt="LlamaIndex" />
-    <img src="https://img.shields.io/badge/Embedding-Qwen%20v4%20(1024d)-4caf50?style=for-the-badge" alt="Qwen 1024d" />
-    <img src="https://img.shields.io/badge/Vector%20Store-FAISS-546e7a?style=for-the-badge" alt="FAISS" />
+    <!-- Tech stack row 1 -->
+    <img src="https://img.shields.io/badge/PYTHON-000000?style=flat-square&logo=python&logoColor=ffffff&labelColor=000000&color=000000" alt="Python" />
+    <img src="https://img.shields.io/badge/3.11%2B-2b5bba?style=flat-square&labelColor=2b5bba&color=2b5bba" alt="3.11+" />
+    <img src="https://img.shields.io/badge/BACKEND-000000?style=flat-square&labelColor=000000&color=000000" alt="Backend" />
+    <img src="https://img.shields.io/badge/FASTAPI-05998b?style=flat-square&labelColor=05998b&color=05998b" alt="FastAPI" />
+    <img src="https://img.shields.io/badge/RAG-000000?style=flat-square&labelColor=000000&color=000000" alt="RAG" />
+    <img src="https://img.shields.io/badge/LLAMAINDEX-f57c00?style=flat-square&labelColor=f57c00&color=f57c00" alt="LlamaIndex" />
+    <img src="https://img.shields.io/badge/EMBEDDING-000000?style=flat-square&labelColor=000000&color=000000" alt="Embedding" />
+    <img src="https://img.shields.io/badge/QWEN%20v4%20(1024d)-4caf50?style=flat-square&labelColor=4caf50&color=4caf50" alt="Qwen v4 (1024d)" />
   </p>
   <p>
-    <img src="https://img.shields.io/badge/LLM-DeepSeek--chat-e91e63?style=for-the-badge" alt="DeepSeek: deepseek-chat" />
-    <img src="https://img.shields.io/badge/Frontend-Vite%20%2B%20React-3f51b5?style=for-the-badge&logo=react&logoColor=ffffff" alt="Vite + React" />
+    <!-- Tech stack row 2 -->
+    <img src="https://img.shields.io/badge/VECTOR%20STORE-000000?style=flat-square&labelColor=000000&color=000000" alt="Vector Store" />
+    <img src="https://img.shields.io/badge/FAISS-546e7a?style=flat-square&labelColor=546e7a&color=546e7a" alt="FAISS" />
+    <img src="https://img.shields.io/badge/LLM-000000?style=flat-square&labelColor=000000&color=000000" alt="LLM" />
+    <img src="https://img.shields.io/badge/DEEPSEEK--CHAT-e91e63?style=flat-square&labelColor=e91e63&color=e91e63" alt="DeepSeek-chat" />
+    <img src="https://img.shields.io/badge/FRONTEND-000000?style=flat-square&labelColor=000000&color=000000" alt="Frontend" />
+    <img src="https://img.shields.io/badge/VITE%20%2B%20REACT-3f51b5?style=flat-square&labelColor=3f51b5&color=3f51b5" alt="Vite + React" />
   </p>
 </div>
 
