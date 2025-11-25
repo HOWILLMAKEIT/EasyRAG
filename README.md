@@ -25,11 +25,11 @@
   </p>
 </div>
 
-一个轻量、可复用的中文 RAG 助手（默认示例面向“计算机网络”课程，但可替换为任意自有语料）：
+一个轻量、可复用的中文 RAG 助手（默认示例面向“计算机网络”课程，但可替换为任意自有语料），支持**多知识库管理**：
 - 后端：FastAPI + LlamaIndex + FAISS
 - 嵌入：通义千问 Qwen（DashScope，text-embedding-v4，固定 1024 维）
 - 生成：DeepSeek-V3.2-Exp 的非思考模式
-- 前端：Vite + React（TS），提供 Ingest/Ask 两个页面
+- 前端：Vite + React（TS），提供知识库管理 + 对话问答页面
 
 ---
 
@@ -58,11 +58,12 @@ python -m pip install -U -r requirements.txt
 - 路径：`INDEX_DIR=./data/index`、`RAW_DIR=./data/raw`（已自动锚定到 backend 目录）
 - 注意：不需要 `EMBED_DIM`，已固定为 1024
 
-3) 准备课程资料并构建索引
+3) 创建知识库并构建索引
 ```bash
-# 将 .pdf/.pptx/.md 放到 backend/data/raw/
+# 在浏览器或直接调用接口创建知识库，例如 ID 为 my_kb
+# 也可以直接在文件夹下建目录 backend/data/raw/my_kb 并放入 .pdf/.pptx/.md
 cd backend
-python build_index.py --rebuild
+python build_index.py --kb my_kb --rebuild
 ```
 
 4) 启动后端与前端
@@ -80,22 +81,21 @@ npm run dev  # http://localhost:5173
 
 ## API 速览
 
-- `POST /ingest`
-  - Body: `{ "rebuild": true }`
-  - 用于读取 `RAW_DIR` 并构建/重建索引
-
-- `POST /ask`
-  - Body: `{ "question": "中文问题", "top_k": 6 }`
-  - 返回：`{ answer, contexts[], latency_ms }`
-
-- `GET /health`
-  - 存活检查
+- `GET /health`：存活检查
+- `GET /kb`：列出所有知识库（ID + 展示名 + 文档数量）
+- `POST /kb`：创建知识库（Body: `{ "name": "中文名称" }`，自动生成英文 ID 作为目录名）
+- `GET /kb/{kb}/files`：查看某个知识库中的文件列表
+- `POST /kb/{kb}/upload`：向指定知识库上传文档并可选重建索引（FormData: `files[]`, `rebuild`）
+- `POST /kb/{kb}/rebuild`：手动重建指定知识库索引
+- `POST /ingest`：Body `{ "kb": "kb_id", "rebuild": true }`，从该知识库对应的 RAW 目录重建索引
+- `POST /ask`：Body `{ "kb": "kb_id", "question": "中文问题", "top_k": 6 }`，在指定知识库上进行 RAG 问答
 
 示例
 ```bash
 curl -s http://localhost:8000/health
-curl -s -X POST http://localhost:8000/ingest -H "Content-Type: application/json" -d '{"rebuild": true}'
-curl -s -X POST http://localhost:8000/ask -H "Content-Type: application/json" -d '{"question":"什么是计算机网络？"}'
+curl -s -X POST http://localhost:8000/kb -H "Content-Type: application/json" -d '{"name":"计算机网络"}'
+curl -s -X POST http://localhost:8000/ingest -H "Content-Type: application/json" -d '{"kb":"my_kb","rebuild":true}'
+curl -s -X POST http://localhost:8000/ask -H "Content-Type: application/json" -d '{"kb":"my_kb","question":"什么是计算机网络？"}'
 ```
 
 ---
@@ -108,16 +108,17 @@ curl -s -X POST http://localhost:8000/ask -H "Content-Type: application/json" -d
 - 生成策略：DeepSeek 低温度中文回答，仅依据上下文；不足即明确说明找不到
 - 跨平台稳健：相对路径自动锚定到 backend；索引加载支持 FAISS 直读与 LlamaIndex 存储
 
-## 目录结构
+## 目录结构（多知识库）
 ```
 backend/
   app/
-    api/            # /ingest, /ask, /health
+    api/            # /health, /kb, /ingest, /ask
     core/           # settings, embed(qwen), index, retriever, rag, generator
     models/         # Pydantic 请求/响应
   data/
-    raw/            # 原始资料（pdf/pptx/md）
-    index/          # FAISS 持久化索引
+    raw/            # 原始资料根目录（按知识库划分子目录 raw/<kb_id>/）
+    index/          # FAISS 索引根目录（按知识库划分子目录 index/<kb_id>/）
+    # raw/_kb_meta.json  # 知识库元数据：ID -> 中文名称等
 frontend/
   vite-react/       # 前端工程
 ```
@@ -130,6 +131,10 @@ frontend/
 - 400 DEEPSEEK_API_KEY 未配置或无效：在 `backend/.env` 写入真实密钥并重启后端
 - 502 DeepSeek 请求失败：检查网络/代理、`DEEPSEEK_BASE_URL` 与 Key 权限
 - 400 RAW_DIR 中没有可用资料：确认 `backend/data/raw` 下存在 `.pdf/.pptx/.md`
+
+---
+
+保持简单、可复用与中文友好。如果你需要 Docker/部署说明或无 LLM 降级模式，欢迎提 Issue 补充。
 - 维度报错：嵌入维度已固定为 1024，如出现不一致请升级 DashScope SDK 并重建索引
 
 ---

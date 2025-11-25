@@ -235,7 +235,7 @@ function App() {
     }
   };
 
-  const handleCreateKb = async () => {
+const handleCreateKb = async () => { 
     const rawName = window.prompt("请输入新的知识库名称（字母、数字、-、_）");
     if (!rawName) return;
     const name = rawName.trim();
@@ -262,8 +262,41 @@ function App() {
     }
   };
 
-  const handleSelectKb = (name: string) => {
-    setActiveKb(name);
+const handleSelectKb = (name: string) => { 
+  setActiveKb(name); 
+}; 
+
+  const handleDeleteKb = async () => {
+    const kbId = activeKb;
+    if (!kbId) {
+      window.alert("当前没有选中的知识库。");
+      return;
+    }
+    const kbLabel = knowledgeBases.find(kb => kb.id === kbId)?.name || kbId;
+    const ok = window.confirm(
+      `确认删除知识库 ${kbLabel} 吗？\n该操作会删除该知识库下的所有文件与索引，且不可恢复。`
+    );
+    if (!ok) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/kb/${encodeURIComponent(kbId)}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail ?? res.statusText);
+      }
+
+      const remaining = knowledgeBases.filter(kb => kb.id !== kbId);
+      const nextId = remaining[0]?.id ?? "";
+      setKbFiles([]);
+      setActiveKb(nextId);
+      await fetchKnowledgeBases(nextId);
+      setIngestSuccess(`知识库 ${kbLabel} 已删除`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "删除知识库失败";
+      setIngestError(msg);
+    }
   };
 
   const handleDeleteKbFile = async (fileName: string) => {
@@ -570,31 +603,42 @@ if (isSidebarCollapsed) {
             
             <div className="ingest-form">
               <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
-                <div>
-                  <span style={{ fontSize: '0.95rem', color: '#475569' }}>当前知识库：</span>
-                  <select
-                    value={activeKb}
-                    onChange={(e) => handleSelectKb(e.target.value)}
-                    style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #cbd5f5' }}
-                    disabled={ingestLoading}
+                <div> 
+                  <span style={{ fontSize: '0.95rem', color: '#475569' }}>当前知识库：</span> 
+                  <select 
+                    value={activeKb} 
+                    onChange={(e) => handleSelectKb(e.target.value)} 
+                    style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #cbd5f5' }} 
+                    disabled={ingestLoading} 
+                  > 
+                    {knowledgeBases.map(kb => ( 
+                      <option key={kb.id} value={kb.id}> 
+                        {kb.name}（{kb.files} 个文件） 
+                      </option> 
+                    ))} 
+                    {knowledgeBases.length === 0 && <option value="">暂无知识库，请先创建</option>} 
+                  </select> 
+                </div> 
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button 
+                    type="button" 
+                    onClick={handleCreateKb} 
+                    className="clear-btn" 
+                    style={{ whiteSpace: 'nowrap' }} 
+                    disabled={ingestLoading} 
+                  > 
+                    <FaPlusCircle /> 新建知识库 
+                  </button> 
+                  <button
+                    type="button"
+                    onClick={handleDeleteKb}
+                    className="clear-btn"
+                    style={{ whiteSpace: 'nowrap', color: '#dc2626', borderColor: '#fecaca' }}
+                    disabled={ingestLoading || !activeKb}
                   >
-                    {knowledgeBases.map(kb => (
-                      <option key={kb.id} value={kb.id}>
-                        {kb.name}（{kb.files}）
-                      </option>
-                    ))}
-                    {knowledgeBases.length === 0 && <option value="">暂无知识库，请先创建</option>}
-                  </select>
+                    <FaTrash /> 删除当前知识库
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleCreateKb}
-                  className="clear-btn"
-                  style={{ whiteSpace: 'nowrap' }}
-                  disabled={ingestLoading}
-                >
-                  <FaPlusCircle /> 新建知识库
-                </button>
               </div>
               <label className="file-drop-area">
                 <input 

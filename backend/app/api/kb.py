@@ -186,7 +186,7 @@ async def delete_kb_files(
         if target.exists() and target.is_file():
             target.unlink()
 
-    # 返回删除后的文件列表
+    # 返回删除后的文件列表，并根据是否还有文档自动处理索引
     files: List[KnowledgeBaseFileInfo] = []
     for p in kb_raw.iterdir():
         if not p.is_file():
@@ -199,4 +199,25 @@ async def delete_kb_files(
                 modified_ts=stat.st_mtime,
             )
         )
+    # 自动重建或清空索引
+    kb_index_dir = (cfg.index_dir / kb_id).resolve()
+    if files:
+        try:
+            ingest_corpus(kb=kb_id, rebuild=True, settings=cfg)
+        except ValueError:
+            # 如果因语料为空等原因出错，忽略，让调用方再手动重建
+            pass
+    else:
+        # 知识库已无文档，清空索引目录
+        if kb_index_dir.exists():
+            for child in kb_index_dir.iterdir():
+                if child.is_file():
+                    child.unlink(missing_ok=True)  # type: ignore[arg-type]
+                else:
+                    for p, _, child_files in os.walk(child, topdown=False):
+                        for f in child_files:
+                            Path(p, f).unlink(missing_ok=True)  # type: ignore[arg-type]
+                        Path(p).rmdir()
+            kb_index_dir.rmdir()
+
     return KnowledgeBaseFilesResponse(kb=kb_id, files=files)
