@@ -1,14 +1,18 @@
 <div align="center">
-  <img src="assert/logo.png" alt="EasyRAG Logo" width="140" />
-  <p style="margin-top: 0.8em;">通用中文 RAG 助手（示例语料：计算机网络课程）</p>
+  <img src="assert/logo.png" alt="EasyRAG Logo" width="220" />
+  <p style="margin-top: 0.6em; font-size: 1.05rem;">
+    通用中文 RAG 助手（示例语料：计算机网络课程）
+  </p>
   <p>
-    <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.11+" />
-    <img src="https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="Backend: FastAPI" />
-    <img src="https://img.shields.io/badge/RAG-LlamaIndex-FF9800?style=for-the-badge" alt="LlamaIndex" />
-    <img src="https://img.shields.io/badge/Embedding-Qwen%20v4%20(1024d)-4CAF50?style=for-the-badge" alt="Qwen 1024d" />
-    <img src="https://img.shields.io/badge/Vector%20Store-FAISS-607D8B?style=for-the-badge" alt="FAISS" />
-    <img src="https://img.shields.io/badge/LLM-DeepSeek--chat-E91E63?style=for-the-badge" alt="DeepSeek: deepseek-chat" />
-    <img src="https://img.shields.io/badge/Frontend-Vite%20%2B%20React-3F51B5?style=for-the-badge&logo=react&logoColor=white" alt="Vite + React" />
+    <img src="https://img.shields.io/badge/Python-3.11%2B-2b5bba?style=for-the-badge&logo=python&logoColor=ffffff" alt="Python 3.11+" />
+    <img src="https://img.shields.io/badge/Backend-FastAPI-05998b?style=for-the-badge&logo=fastapi&logoColor=ffffff" alt="Backend: FastAPI" />
+    <img src="https://img.shields.io/badge/RAG-LlamaIndex-f57c00?style=for-the-badge" alt="LlamaIndex" />
+    <img src="https://img.shields.io/badge/Embedding-Qwen%20v4%20(1024d)-4caf50?style=for-the-badge" alt="Qwen 1024d" />
+    <img src="https://img.shields.io/badge/Vector%20Store-FAISS-546e7a?style=for-the-badge" alt="FAISS" />
+  </p>
+  <p>
+    <img src="https://img.shields.io/badge/LLM-DeepSeek--chat-e91e63?style=for-the-badge" alt="DeepSeek: deepseek-chat" />
+    <img src="https://img.shields.io/badge/Frontend-Vite%20%2B%20React-3f51b5?style=for-the-badge&logo=react&logoColor=ffffff" alt="Vite + React" />
   </p>
 </div>
 
