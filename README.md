@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assert/logo.png" alt="EasyRAG Logo" width="300" style="margin-left: 85px;" />
+  <img src="assert/logo.png" alt="EasyRAG Logo" width="450" style="margin-left: 85px;" />
   <p style="margin-top: 0.8em; font-size: 1.5rem;">
     通用中文 RAG 助手
   </p>
