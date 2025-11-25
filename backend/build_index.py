@@ -25,6 +25,12 @@ def main() -> None:
     )
     parser = argparse.ArgumentParser(description="构建 EasyRAG 本地索引")
     parser.add_argument(
+        "--kb",
+        type=str,
+        default="default",
+        help="知识库名称（对应 RAW_DIR/kb 和 INDEX_DIR/kb，默认 default）",
+    )
+    parser.add_argument(
         "--rebuild",
         action="store_true",
         default=True,
@@ -33,8 +39,8 @@ def main() -> None:
     args = parser.parse_args()
 
     cfg = get_settings()
-    files, chunks = ingest_corpus(rebuild=args.rebuild, settings=cfg)
-    print(f"索引构建完成：文件 {files} 个，切片 {chunks} 个，目录 {cfg.index_dir}")
+    files, chunks = ingest_corpus(kb=args.kb, rebuild=args.rebuild, settings=cfg)
+    print(f"索引构建完成：知识库 {args.kb}，文件 {files} 个，切片 {chunks} 个，目录 {cfg.index_dir / args.kb}")
 
 
 if __name__ == "__main__":

@@ -73,3 +73,8 @@ class KnowledgeBaseFilesResponse(BaseModel):
     """知识库文件列表响应。"""
     kb: str
     files: List[KnowledgeBaseFileInfo]
+
+
+class KnowledgeBaseDeleteFilesRequest(BaseModel):
+    """删除知识库中文件的请求。"""
+    names: List[str] = Field(min_length=1, description="要删除的文件名列表（相对于知识库根目录）")

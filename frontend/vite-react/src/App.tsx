@@ -21,6 +21,12 @@ type KnowledgeBase = {
   files: number;
 };
 
+type KnowledgeBaseFile = {
+  name: string;
+  size: number;
+  modified_ts: number;
+};
+
 type SearchInputProps = {
   value: string;
   onChange: (val: string) => void;
@@ -72,6 +78,9 @@ function App() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([]);
   const [activeKb, setActiveKb] = useState<string>("");
+  const [kbFiles, setKbFiles] = useState<KnowledgeBaseFile[]>([]);
+  const [kbLoading, setKbLoading] = useState(false);
+  const [kbError, setKbError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -101,23 +110,61 @@ function App() {
   }, []);
 
   // 加载知识库列表
-  useEffect(() => {
-    const fetchKBs = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/kb`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (Array.isArray(data.items)) {
-          setKnowledgeBases(data.items);
-          if (!activeKb && data.items.length > 0) {
-            setActiveKb(data.items[0].name);
-          }
+  const fetchKnowledgeBases = async (preferKb?: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/kb`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data.items)) {
+        setKnowledgeBases(data.items);
+        const nameToUse = preferKb || activeKb || (data.items[0]?.name ?? "");
+        if (nameToUse && nameToUse !== activeKb) {
+          setActiveKb(nameToUse);
         }
-      } catch {
-        // 忽略首页 KB 加载错误，仍可使用默认配置
       }
-    };
-    fetchKBs();
+    } catch {
+      // 忽略首页 KB 加载错误，仍可使用默认配置
+    }
+  };
+
+  const fetchKbFiles = async (kbName: string) => {
+    if (!kbName) {
+      setKbFiles([]);
+      return;
+    }
+    setKbLoading(true);
+    setKbError(null);
+    try {
+      const res = await fetch(`${API_BASE}/kb/${encodeURIComponent(kbName)}/files`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail ?? res.statusText);
+      }
+      const data = await res.json();
+      if (Array.isArray(data.files)) {
+        setKbFiles(data.files);
+      } else {
+        setKbFiles([]);
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "加载知识库文件列表失败";
+      setKbError(msg);
+      setKbFiles([]);
+    } finally {
+      setKbLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchKnowledgeBases();
+  }, []);
+
+  useEffect(() => {
+    if (activeKb) {
+      fetchKbFiles(activeKb);
+    } else {
+      setKbFiles([]);
+    }
   }, [activeKb]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -176,21 +223,67 @@ function App() {
       const data = await res.json();
       setIngestSuccess(`成功索引 ${data.files} 个文档！`);
       setFiles([]); // 上传成功后清空列表
-      // 上传成功后刷新知识库信息
-      try {
-        const resKb = await fetch(`${API_BASE}/kb`);
-        const dataKb = await resKb.json();
-        if (Array.isArray(dataKb.items)) {
-          setKnowledgeBases(dataKb.items);
-        }
-      } catch {
-        // ignore
-      }
+      // 上传成功后刷新知识库和文件信息
+      fetchKnowledgeBases(kb);
+      fetchKbFiles(kb);
     } catch (e) {
       const message = e instanceof Error ? e.message : "上传和索引失败，请检查后端服务";
       setIngestError(message);
     } finally {
       setIngestLoading(false);
+    }
+  };
+
+  const handleCreateKb = async () => {
+    const rawName = window.prompt("请输入新的知识库名称（字母、数字、-、_）");
+    if (!rawName) return;
+    const name = rawName.trim();
+    if (!name) return;
+    try {
+      const res = await fetch(`${API_BASE}/kb`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail ?? res.statusText);
+      }
+      await fetchKnowledgeBases(name);
+      await fetchKbFiles(name);
+      setIngestSuccess(`知识库 ${name} 创建成功`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "创建知识库失败";
+      setIngestError(msg);
+    }
+  };
+
+  const handleSelectKb = (name: string) => {
+    setActiveKb(name);
+  };
+
+  const handleDeleteKbFile = async (fileName: string) => {
+    const kbName = activeKb || "default";
+    const confirmDelete = window.confirm(`确认从知识库 ${kbName} 中删除文件：${fileName} 吗？（删除后请手动重建索引以生效）`);
+    if (!confirmDelete) return;
+    try {
+      const res = await fetch(`${API_BASE}/kb/${encodeURIComponent(kbName)}/files`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ names: [fileName] }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail ?? res.statusText);
+      }
+      const data = await res.json();
+      if (Array.isArray(data.files)) {
+        setKbFiles(data.files);
+      }
+      setIngestSuccess(`已从知识库 ${kbName} 删除文件：${fileName}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "删除文件失败";
+      setIngestError(msg);
     }
   };
 
@@ -471,11 +564,12 @@ if (isSidebarCollapsed) {
             </p>
             
             <div className="ingest-form">
-              <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
+                <div>
                 <span style={{ fontSize: '0.95rem', color: '#475569' }}>当前知识库：</span>
                 <select
                   value={activeKb}
-                  onChange={(e) => setActiveKb(e.target.value)}
+                  onChange={(e) => handleSelectKb(e.target.value)}
                   style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #cbd5f5' }}
                   disabled={ingestLoading}
                 >
@@ -486,6 +580,16 @@ if (isSidebarCollapsed) {
                   ))}
                   {knowledgeBases.length === 0 && <option value="">暂无知识库，请先创建</option>}
                 </select>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCreateKb}
+                  className="clear-btn"
+                  style={{ whiteSpace: 'nowrap' }}
+                  disabled={ingestLoading}
+                >
+                  <FaPlusCircle /> 新建知识库
+                </button>
               </div>
               <label className="file-drop-area">
                 <input 
@@ -537,6 +641,35 @@ if (isSidebarCollapsed) {
 
               {ingestError && <p className="ingest-message error">{ingestError}</p>}
               {ingestSuccess && <p className="ingest-message success">{ingestSuccess}</p>}
+
+              {/* 当前知识库中文件列表 */}
+              <div style={{ marginTop: 24 }}>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: 8 }}>当前知识库文件</h3>
+                {kbLoading ? (
+                  <p style={{ fontSize: '0.9rem', color: '#64748b' }}>加载中...</p>
+                ) : kbError ? (
+                  <p className="ingest-message error">{kbError}</p>
+                ) : kbFiles.length === 0 ? (
+                  <p style={{ fontSize: '0.9rem', color: '#94a3b8' }}>暂无文件，请先上传。</p>
+                ) : (
+                  <ul className="file-list">
+                    {kbFiles.map(file => (
+                      <li key={file.name} className="file-item">
+                        <FaFile style={{ color: '#94a3b8' }} />
+                        <span className="file-name">{file.name}</span>
+                        <span className="file-size">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                        <button
+                          onClick={() => handleDeleteKbFile(file.name)}
+                          className="remove-btn"
+                          disabled={ingestLoading}
+                        >
+                          <FaTrash />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           </div>
         )}

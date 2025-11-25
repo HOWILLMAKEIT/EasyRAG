@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from typing import List
 
-from fastapi import APIRouter, HTTPException, Path as ApiPath
+from fastapi import APIRouter, HTTPException, Path as ApiPath, Body
 
 from ..core.settings import get_settings
 from ..core.rag import ingest_corpus
@@ -15,6 +15,7 @@ from ..models.schemas import (
     KnowledgeBaseFilesResponse,
     KnowledgeBaseFileInfo,
     IngestResponse,
+    KnowledgeBaseDeleteFilesRequest,
 )
 
 router = APIRouter(prefix="/kb", tags=["kb"])
@@ -116,3 +117,36 @@ async def rebuild_kb_index(kb: str = ApiPath(..., description="知识库名称")
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return IngestResponse(ok=True, files=files, chunks=chunks, index_dir=str(cfg.index_dir / name))
 
+
+@router.delete("/{kb}/files", response_model=KnowledgeBaseFilesResponse)
+async def delete_kb_files(
+    kb: str = ApiPath(..., description="知识库名称"),
+    payload: KnowledgeBaseDeleteFilesRequest = Body(...),
+) -> KnowledgeBaseFilesResponse:
+    """删除指定知识库中的一个或多个文件，并返回最新文件列表。"""
+    cfg = get_settings()
+    name = _safe_kb_name(kb)
+    kb_raw = (cfg.raw_dir / name).resolve()
+    if not kb_raw.exists():
+        raise HTTPException(status_code=404, detail="知识库不存在")
+
+    for filename in payload.names:
+        safer_name = filename.replace("\\", "/").split("/")[-1]
+        target = kb_raw / safer_name
+        if target.exists() and target.is_file():
+            target.unlink()
+
+    # 返回删除后的文件列表
+    files: List[KnowledgeBaseFileInfo] = []
+    for p in kb_raw.iterdir():
+        if not p.is_file():
+            continue
+        stat = p.stat()
+        files.append(
+            KnowledgeBaseFileInfo(
+                name=p.name,
+                size=stat.st_size,
+                modified_ts=stat.st_mtime,
+            )
+        )
+    return KnowledgeBaseFilesResponse(kb=name, files=files)
