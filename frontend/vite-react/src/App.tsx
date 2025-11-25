@@ -16,6 +16,11 @@ type ChatSession = {
   title: string;
 };
 
+type KnowledgeBase = {
+  name: string;
+  files: number;
+};
+
 type SearchInputProps = {
   value: string;
   onChange: (val: string) => void;
@@ -65,6 +70,8 @@ function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]); 
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([]);
+  const [activeKb, setActiveKb] = useState<string>("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -92,6 +99,26 @@ function App() {
       console.log("没有找到本地会话。");
     }
   }, []);
+
+  // 加载知识库列表
+  useEffect(() => {
+    const fetchKBs = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/kb`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (Array.isArray(data.items)) {
+          setKnowledgeBases(data.items);
+          if (!activeKb && data.items.length > 0) {
+            setActiveKb(data.items[0].name);
+          }
+        }
+      } catch {
+        // 忽略首页 KB 加载错误，仍可使用默认配置
+      }
+    };
+    fetchKBs();
+  }, [activeKb]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setIngestError(null);
@@ -135,7 +162,8 @@ function App() {
     });
 
     try {
-      const res = await fetch(`${API_BASE}/ingest/upload`, {
+      const kb = activeKb || "default";
+      const res = await fetch(`${API_BASE}/kb/${encodeURIComponent(kb)}/upload`, {
         method: "POST",
         body: formData,
       });
@@ -148,6 +176,16 @@ function App() {
       const data = await res.json();
       setIngestSuccess(`成功索引 ${data.files} 个文档！`);
       setFiles([]); // 上传成功后清空列表
+      // 上传成功后刷新知识库信息
+      try {
+        const resKb = await fetch(`${API_BASE}/kb`);
+        const dataKb = await resKb.json();
+        if (Array.isArray(dataKb.items)) {
+          setKnowledgeBases(dataKb.items);
+        }
+      } catch {
+        // ignore
+      }
     } catch (e) {
       const message = e instanceof Error ? e.message : "上传和索引失败，请检查后端服务";
       setIngestError(message);
@@ -271,10 +309,12 @@ function App() {
 
     let aiMessage: Message = { role: "ai", content: "..." }; 
     try {
+      const kb = activeKb || "default";
       const res = await fetch(`${API_BASE}/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
+          kb,
           question: question, 
           top_k: topK //
         })
@@ -431,6 +471,22 @@ if (isSidebarCollapsed) {
             </p>
             
             <div className="ingest-form">
+              <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: '0.95rem', color: '#475569' }}>当前知识库：</span>
+                <select
+                  value={activeKb}
+                  onChange={(e) => setActiveKb(e.target.value)}
+                  style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #cbd5f5' }}
+                  disabled={ingestLoading}
+                >
+                  {knowledgeBases.map(kb => (
+                    <option key={kb.name} value={kb.name}>
+                      {kb.name}（{kb.files}）
+                    </option>
+                  ))}
+                  {knowledgeBases.length === 0 && <option value="">暂无知识库，请先创建</option>}
+                </select>
+              </div>
               <label className="file-drop-area">
                 <input 
                   type="file" 

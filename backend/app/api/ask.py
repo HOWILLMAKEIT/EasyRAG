@@ -11,10 +11,10 @@ router = APIRouter(prefix="/ask", tags=["ask"])
 
 @router.post("", response_model=AskResponse)
 async def ask_question(payload: AskRequest) -> AskResponse:
-    """问答接口：基于索引进行 Top‑K 检索并调用生成模型返回答案与引用。"""
+    """问答接口：基于指定知识库索引进行 Top‑K 检索并调用生成模型返回答案与引用。"""
     cfg = get_settings()
     try:
-        answer, contexts, latency = retrieve_and_answer(payload.question, payload.top_k, cfg)
+        answer, contexts, latency = retrieve_and_answer(payload.kb, payload.question, payload.top_k, cfg)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except ValueError as exc:

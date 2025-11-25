@@ -12,7 +12,8 @@ class HealthResponse(BaseModel):
 
 
 class IngestRequest(BaseModel):
-    """入库请求：只接受 rebuild 标志。"""
+    """入库请求：指定知识库并决定是否重建索引。"""
+    kb: str = Field(min_length=1, description="知识库名称")
     rebuild: bool = True
 
 
@@ -25,7 +26,8 @@ class IngestResponse(BaseModel):
 
 
 class AskRequest(BaseModel):
-    """问答请求：包含中文问题与可选 Top‑K。"""
+    """问答请求：包含知识库、中文问题与可选 Top‑K。"""
+    kb: str = Field(min_length=1, description="知识库名称")
     question: str = Field(min_length=2, description="中文问题")
     top_k: Optional[int] = Field(default=None, ge=1, le=20)
 
@@ -42,3 +44,32 @@ class AskResponse(BaseModel):
     answer: str
     contexts: List[ContextChunk]
     latency_ms: int
+
+
+class KnowledgeBaseInfo(BaseModel):
+    """知识库信息：名称与文档数量。"""
+    name: str
+    files: int = 0
+
+
+class KnowledgeBaseListResponse(BaseModel):
+    """知识库列表响应。"""
+    items: List[KnowledgeBaseInfo]
+
+
+class KnowledgeBaseCreateRequest(BaseModel):
+    """创建知识库请求。"""
+    name: str = Field(min_length=1, max_length=64, description="知识库名称（目录名）")
+
+
+class KnowledgeBaseFileInfo(BaseModel):
+    """知识库中文件信息。"""
+    name: str
+    size: int
+    modified_ts: float
+
+
+class KnowledgeBaseFilesResponse(BaseModel):
+    """知识库文件列表响应。"""
+    kb: str
+    files: List[KnowledgeBaseFileInfo]

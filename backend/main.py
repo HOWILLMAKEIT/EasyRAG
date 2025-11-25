@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import ask, health, ingest
+from app.api import ask, health, ingest, kb
 from app.core.settings import get_settings
 
 LOG_DIR = Path("logs")
@@ -47,6 +47,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(health.router)
+    app.include_router(kb.router)
     app.include_router(ingest.router)
     app.include_router(ask.router)
 
