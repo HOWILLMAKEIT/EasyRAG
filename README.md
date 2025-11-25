@@ -1,6 +1,6 @@
 <div align="center">
-  <h1 style="margin-bottom: 0.2em;">EasyRAG</h1>
-  <p style="margin-top: 0;">通用中文 RAG 助手（示例语料：计算机网络课程）</p>
+  <img src="assert/image.png" alt="EasyRAG Logo" width="140" />
+  <p style="margin-top: 0.8em;">通用中文 RAG 助手（示例语料：计算机网络课程）</p>
   <p>
     <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.11+" />
     <img src="https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="Backend: FastAPI" />
@@ -55,7 +55,7 @@ python build_index.py --rebuild
 4) 启动后端与前端
 ```bash
 # 后端（backend 目录）
-uvicorn main:app --reload --port 8000 --reload-exclude "data/*"
+uvicorn main:app --reload --port 8000 --reload-exclude data
 
 # 前端（另一个终端）
 cd frontend/vite-react
