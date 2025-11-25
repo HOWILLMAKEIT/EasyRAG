@@ -26,7 +26,7 @@ logging.basicConfig(
 def create_app() -> FastAPI:
     """创建 FastAPI 应用并挂载路由与 CORS。"""
     cfg = get_settings()
-    app = FastAPI(title="netMind RAG API", version="0.1.0")
+    app = FastAPI(title="EasyRAG API", version="0.1.0")
 
     # CORS：开发环境默认放行 Vite 开发服务器；生产可用环境变量覆盖
     cors_env = os.getenv("CORS_ALLOW_ORIGINS", "").strip()

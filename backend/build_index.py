@@ -23,7 +23,7 @@ def main() -> None:
         ],
         force=True,
     )
-    parser = argparse.ArgumentParser(description="构建 netMind 本地索引")
+    parser = argparse.ArgumentParser(description="构建 EasyRAG 本地索引")
     parser.add_argument(
         "--rebuild",
         action="store_true",

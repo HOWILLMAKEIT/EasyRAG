@@ -318,7 +318,7 @@ if (isSidebarCollapsed) {
     <div className="app-container">
       <aside className={sidebarClasses.join(" ")}>
         <div className="sidebar-title">
-          <span className="nav-text">NetMind 助手</span>
+          <span className="nav-text">EasyRAG 助手</span>
         </div>
         <button className="nav-btn new-chat-btn" onClick={handleNewChat}>
           <FaPlusCircle />
@@ -491,9 +491,9 @@ if (isSidebarCollapsed) {
             {messages.length === 0 ? (
               <div className="welcome-view">
                 <div className="hero-text">
-                  <p style={{color: '#2563eb', fontWeight: 'bold', marginBottom: 10}}>RAG · 计算机网络课程</p>
-                  <h1>您今天想学习什么计算机网络知识？</h1>
-                  <p className="subtitle">我是 NetMind 智能助手，有什么可以帮你？</p>
+                  <p style={{color: '#2563eb', fontWeight: 'bold', marginBottom: 10}}>RAG · 通用中文知识库</p>
+                  <h1>您今天想学习什么知识？</h1>
+                  <p className="subtitle">我是 EasyRAG 智能助手，有什么可以帮你？</p>
                 </div>
                 
               </div>
@@ -503,7 +503,7 @@ if (isSidebarCollapsed) {
                   <div key={idx} className={`message-item ${msg.role}`}>
                     <div className="message-content">
                       <div className="msg-role-name">
-                        {msg.role === 'ai' ? 'NetMind' : '你'}
+                        {msg.role === 'ai' ? 'EasyRAG' : '你'}
                       </div>
                       <div style={{whiteSpace: 'pre-wrap'}}>{msg.content}</div>
                       {msg.sources && (

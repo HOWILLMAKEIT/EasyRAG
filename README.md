@@ -1,18 +1,18 @@
 <div align="center">
-  <h1 style="margin-bottom: 0.2em;">NetMind</h1>
-  <p style="margin-top: 0;">计算机网络课程 · 中文 RAG 助手</p>
+  <h1 style="margin-bottom: 0.2em;">EasyRAG</h1>
+  <p style="margin-top: 0;">通用中文 RAG 助手（示例语料：计算机网络课程）</p>
   <p>
     <img src="https://img.shields.io/badge/Python-3.11%2B-blue?style=flat-square" alt="Python 3.11+" />
-    <img src="https://img.shields.io/badge/FastAPI-API-brightgreen?style=flat-square" alt="FastAPI" />
+    <img src="https://img.shields.io/badge/Backend-FastAPI-brightgreen?style=flat-square" alt="Backend: FastAPI" />
     <img src="https://img.shields.io/badge/LlamaIndex-RAG-orange?style=flat-square" alt="LlamaIndex" />
     <img src="https://img.shields.io/badge/Embedding-Qwen%20v4%20(1024d)-yellowgreen?style=flat-square" alt="Qwen 1024d" />
     <img src="https://img.shields.io/badge/Vector%20Store-FAISS-lightgrey?style=flat-square" alt="FAISS" />
     <img src="https://img.shields.io/badge/Frontend-Vite%20%2B%20React-blueviolet?style=flat-square" alt="Vite + React" />
-    <img src="https://img.shields.io/badge/Status-MVP-informational?style=flat-square" alt="Status: MVP" />
+    <img src="https://img.shields.io/badge/DeepSeek-deepseek--chat-orange?style=flat-square" alt="DeepSeek: deepseek-chat" />
   </p>
 </div>
 
-一个面向“计算机网络”课程的中文 RAG 助手：
+一个轻量、可复用的中文 RAG 助手（默认示例面向“计算机网络”课程，但可替换为任意自有语料）：
 - 后端：FastAPI + LlamaIndex + FAISS
 - 嵌入：通义千问 Qwen（DashScope，text-embedding-v4，固定 1024 维）
 - 生成：DeepSeek-V3.2-Exp 的非思考模式
@@ -32,8 +32,8 @@
 
 1) 安装后端依赖（建议 Conda on Windows）
 ```bash
-conda create -n netmind-py311 python=3.11 -y
-conda activate netmind-py311
+conda create -n easyrag-py311 python=3.11 -y
+conda activate easyrag-py311
 conda install -c conda-forge faiss-cpu -y
 cd backend
 python -m pip install -U -r requirements.txt
