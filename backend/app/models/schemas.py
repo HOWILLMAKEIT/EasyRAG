@@ -47,7 +47,8 @@ class AskResponse(BaseModel):
 
 
 class KnowledgeBaseInfo(BaseModel):
-    """知识库信息：名称与文档数量。"""
+    """知识库信息：ID（目录名）、展示名称与文档数量。"""
+    id: str
     name: str
     files: int = 0
 

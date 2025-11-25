@@ -17,6 +17,7 @@ type ChatSession = {
 };
 
 type KnowledgeBase = {
+  id: string;
   name: string;
   files: number;
 };
@@ -117,9 +118,9 @@ function App() {
       const data = await res.json();
       if (Array.isArray(data.items)) {
         setKnowledgeBases(data.items);
-        const nameToUse = preferKb || activeKb || (data.items[0]?.name ?? "");
-        if (nameToUse && nameToUse !== activeKb) {
-          setActiveKb(nameToUse);
+        const idToUse = preferKb || activeKb || (data.items[0]?.id ?? "");
+        if (idToUse && idToUse !== activeKb) {
+          setActiveKb(idToUse);
         }
       }
     } catch {
@@ -127,15 +128,15 @@ function App() {
     }
   };
 
-  const fetchKbFiles = async (kbName: string) => {
-    if (!kbName) {
+  const fetchKbFiles = async (kbId: string) => {
+    if (!kbId) {
       setKbFiles([]);
       return;
     }
     setKbLoading(true);
     setKbError(null);
     try {
-      const res = await fetch(`${API_BASE}/kb/${encodeURIComponent(kbName)}/files`);
+      const res = await fetch(`${API_BASE}/kb/${encodeURIComponent(kbId)}/files`);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.detail ?? res.statusText);
@@ -249,9 +250,12 @@ function App() {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.detail ?? res.statusText);
       }
-      await fetchKnowledgeBases(name);
-      await fetchKbFiles(name);
-      setIngestSuccess(`知识库 ${name} 创建成功`);
+      const kbInfo = await res.json();
+      const newId = kbInfo.id as string;
+      await fetchKnowledgeBases(newId);
+      await fetchKbFiles(newId);
+      setActiveKb(newId);
+      setIngestSuccess(`知识库 ${kbInfo.name ?? name} 创建成功`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "创建知识库失败";
       setIngestError(msg);
@@ -263,11 +267,12 @@ function App() {
   };
 
   const handleDeleteKbFile = async (fileName: string) => {
-    const kbName = activeKb || "default";
-    const confirmDelete = window.confirm(`确认从知识库 ${kbName} 中删除文件：${fileName} 吗？（删除后请手动重建索引以生效）`);
+    const kbId = activeKb || "default";
+    const kbLabel = knowledgeBases.find(kb => kb.id === kbId)?.name || kbId;
+    const confirmDelete = window.confirm(`确认从知识库 ${kbLabel} 中删除文件：${fileName} 吗？（删除后请手动重建索引以生效）`);
     if (!confirmDelete) return;
     try {
-      const res = await fetch(`${API_BASE}/kb/${encodeURIComponent(kbName)}/files`, {
+      const res = await fetch(`${API_BASE}/kb/${encodeURIComponent(kbId)}/files`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ names: [fileName] }),
@@ -280,7 +285,7 @@ function App() {
       if (Array.isArray(data.files)) {
         setKbFiles(data.files);
       }
-      setIngestSuccess(`已从知识库 ${kbName} 删除文件：${fileName}`);
+      setIngestSuccess(`已从知识库 ${kbLabel} 删除文件：${fileName}`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "删除文件失败";
       setIngestError(msg);
@@ -566,20 +571,20 @@ if (isSidebarCollapsed) {
             <div className="ingest-form">
               <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
                 <div>
-                <span style={{ fontSize: '0.95rem', color: '#475569' }}>当前知识库：</span>
-                <select
-                  value={activeKb}
-                  onChange={(e) => handleSelectKb(e.target.value)}
-                  style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #cbd5f5' }}
-                  disabled={ingestLoading}
-                >
-                  {knowledgeBases.map(kb => (
-                    <option key={kb.name} value={kb.name}>
-                      {kb.name}（{kb.files}）
-                    </option>
-                  ))}
-                  {knowledgeBases.length === 0 && <option value="">暂无知识库，请先创建</option>}
-                </select>
+                  <span style={{ fontSize: '0.95rem', color: '#475569' }}>当前知识库：</span>
+                  <select
+                    value={activeKb}
+                    onChange={(e) => handleSelectKb(e.target.value)}
+                    style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #cbd5f5' }}
+                    disabled={ingestLoading}
+                  >
+                    {knowledgeBases.map(kb => (
+                      <option key={kb.id} value={kb.id}>
+                        {kb.name}（{kb.files}）
+                      </option>
+                    ))}
+                    {knowledgeBases.length === 0 && <option value="">暂无知识库，请先创建</option>}
+                  </select>
                 </div>
                 <button
                   type="button"
