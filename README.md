@@ -1,6 +1,8 @@
 <div align="center">
-  <img src="assert/logo.png" alt="EasyRAG Logo" width="220" />
-  <p style="margin-top: 0.6em; font-size: 1.05rem;">
+  <div style="display: inline-block; padding: 18px 24px; border-radius: 18px; background: #ffffff; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06); margin-bottom: 10px;">
+    <img src="assert/logo.png" alt="EasyRAG Logo" width="220" />
+  </div>
+  <p style="margin-top: 0; font-size: 1.05rem;">
     通用中文 RAG 助手
   </p>
   <p>
