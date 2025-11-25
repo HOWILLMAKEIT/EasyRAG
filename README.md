@@ -1,7 +1,7 @@
 <div align="center">
   <img src="assert/logo.png" alt="EasyRAG Logo" width="220" />
   <p style="margin-top: 0.6em; font-size: 1.05rem;">
-    通用中文 RAG 助手（示例语料：计算机网络课程）
+    通用中文 RAG 助手
   </p>
   <p>
     <img src="https://img.shields.io/badge/Python-3.11%2B-2b5bba?style=for-the-badge&logo=python&logoColor=ffffff" alt="Python 3.11+" />
