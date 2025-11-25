@@ -153,6 +153,9 @@ def retrieve_and_answer(
         contexts = _manual_faiss_retrieve(question, top_k or cfg.similarity_top_k, cfg)
     # 控制总长度，避免超出生成模型可用的上下文窗口
     contexts = _trim_contexts(contexts, cfg)
+    # 为每个上下文片段分配引用编号 ref，便于在回答中使用 [1][2]… 映射
+    for idx, ctx in enumerate(contexts, start=1):
+        ctx["ref"] = idx
     logger.info("检索到上下文片段：%s 个（已按预算裁剪）", len(contexts))
 
     if not contexts:

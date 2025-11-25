@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assert/logo.png" alt="EasyRAG Logo" width="300" style="margin-left: 70px;" />
+  <img src="assert/logo.png" alt="EasyRAG Logo" width="300" style="margin-left: 85px;" />
   <p style="margin-top: 0.8em; font-size: 1.05rem;">
     通用中文 RAG 助手
   </p>
@@ -127,14 +127,10 @@ frontend/
 
 ## 常见问题（Troubleshooting）
 
-- 400 无法加载索引：先执行 `/ingest` 或 `python build_index.py --rebuild`，确认 `backend/data/index` 非空
+- 400 无法加载索引：确认指定 `kb_id` 已完成构建（先执行 `POST /ingest` 带 `{"kb":"kb_id","rebuild":true}`，或在 backend 目录下运行 `python build_index.py --kb kb_id --rebuild`，并检查 `backend/data/index/kb_id` 非空）
 - 400 DEEPSEEK_API_KEY 未配置或无效：在 `backend/.env` 写入真实密钥并重启后端
 - 502 DeepSeek 请求失败：检查网络/代理、`DEEPSEEK_BASE_URL` 与 Key 权限
 - 400 RAW_DIR 中没有可用资料：确认 `backend/data/raw` 下存在 `.pdf/.pptx/.md`
-
----
-
-保持简单、可复用与中文友好。如果你需要 Docker/部署说明或无 LLM 降级模式，欢迎提 Issue 补充。
 - 维度报错：嵌入维度已固定为 1024，如出现不一致请升级 DashScope SDK 并重建索引
 
 ---

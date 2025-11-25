@@ -8,7 +8,7 @@ const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
 type Message = {
   role: "user" | "ai";
   content: string;
-  sources?: { source: string; page?: string }[];
+  sources?: { ref?: number; source: string; page?: string; text?: string }[];
 };
 
 type ChatSession = {
@@ -83,6 +83,7 @@ function App() {
   const [kbLoading, setKbLoading] = useState(false);
   const [kbError, setKbError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [activeContext, setActiveContext] = useState<{ msgIndex: number; ref: number } | null>(null);
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -109,6 +110,13 @@ function App() {
       console.log("没有找到本地会话。");
     }
   }, []);
+
+  const formatSourceLabel = (s: { ref?: number; source: string; page?: string; text?: string }, idx: number) => {
+    const ref = s.ref !== undefined && s.ref !== null && s.ref > 0 ? s.ref : idx + 1;
+    const base = s.source || "未知来源";
+    // 只显示编号 + 文件名，不再显示位置/片段信息
+    return `[${ref}] ${base}`;
+  };
 
   // 加载知识库列表
   const fetchKnowledgeBases = async (preferKb?: string) => {
@@ -299,10 +307,12 @@ const handleSelectKb = (name: string) => {
     }
   };
 
-  const handleDeleteKbFile = async (fileName: string) => {
-    const kbId = activeKb || "default";
-    const kbLabel = knowledgeBases.find(kb => kb.id === kbId)?.name || kbId;
-    const confirmDelete = window.confirm(`确认从知识库 ${kbLabel} 中删除文件：${fileName} 吗？（删除后请手动重建索引以生效）`);
+  const handleDeleteKbFile = async (fileName: string) => { 
+    const kbId = activeKb || "default"; 
+    const kbLabel = knowledgeBases.find(kb => kb.id === kbId)?.name || kbId; 
+    const confirmDelete = window.confirm(
+      `确认从知识库 ${kbLabel} 中删除文件：${fileName} 吗？（删除后系统会自动重建索引）`
+    ); 
     if (!confirmDelete) return;
     try {
       const res = await fetch(`${API_BASE}/kb/${encodeURIComponent(kbId)}/files`, {
@@ -314,11 +324,15 @@ const handleSelectKb = (name: string) => {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.detail ?? res.statusText);
       }
-      const data = await res.json();
-      if (Array.isArray(data.files)) {
-        setKbFiles(data.files);
-      }
-      setIngestSuccess(`已从知识库 ${kbLabel} 删除文件：${fileName}`);
+      const data = await res.json(); 
+      if (Array.isArray(data.files)) { 
+        setKbFiles(data.files); 
+        const extra =
+          data.files.length > 0
+            ? "，并已自动重建索引。"
+            : "，该知识库已无文档，索引已清空。";
+        setIngestSuccess(`已从知识库 ${kbLabel} 删除文件：${fileName}${extra}`);
+      } 
     } catch (e) {
       const msg = e instanceof Error ? e.message : "删除文件失败";
       setIngestError(msg);
@@ -744,17 +758,80 @@ if (isSidebarCollapsed) {
                         {msg.role === 'ai' ? 'EasyRAG' : '你'}
                       </div>
                       <div style={{whiteSpace: 'pre-wrap'}}>{msg.content}</div>
-                      {msg.sources && (
-                        <div style={{
-                          marginTop: 10, 
-                          fontSize: '0.85rem', 
-                          color: '#555',     
-                          background: 'rgba(0,0,0,0.05)', 
-                          padding: '6px 10px', 
-                          borderRadius: 6, 
-                          display: 'block'
-                        }}>
-                          📚 参考: {msg.sources.map(s => s.source).join(', ')}
+                      {msg.sources && msg.sources.length > 0 && (
+                        <div
+                          style={{
+                            marginTop: 10,
+                            fontSize: "0.85rem",
+                            color: "#555",
+                            background: "rgba(0,0,0,0.05)",
+                            padding: "6px 10px",
+                            borderRadius: 6,
+                            display: "block",
+                          }}
+                        >
+                          <div style={{ marginBottom: 6 }}>📚 参考：</div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                            {msg.sources
+                              .slice()
+                              .sort(
+                                (a, b) => (a.ref ?? Number.MAX_SAFE_INTEGER) - (b.ref ?? Number.MAX_SAFE_INTEGER)
+                              )
+                              .map((s, sIdx) => {
+                                const ref = s.ref ?? sIdx + 1;
+                                const label = formatSourceLabel(s, sIdx);
+                                const isActive =
+                                  activeContext &&
+                                  activeContext.msgIndex === idx &&
+                                  activeContext.ref === ref;
+                                return (
+                                  <button
+                                    key={`${ref}-${s.source}-${s.page ?? ""}`}
+                                    type="button"
+                                    onClick={() =>
+                                      setActiveContext(
+                                        isActive ? null : { msgIndex: idx, ref }
+                                      )
+                                    }
+                                    style={{
+                                      border: "none",
+                                      borderRadius: 999,
+                                      padding: "2px 8px",
+                                      fontSize: "0.8rem",
+                                      cursor: "pointer",
+                                      backgroundColor: isActive ? "#2563eb" : "#e5e7eb",
+                                      color: isActive ? "#fff" : "#374151",
+                                    }}
+                                  >
+                                    {label}
+                                  </button>
+                                );
+                              })}
+                          </div>
+                          {activeContext &&
+                            activeContext.msgIndex === idx && (
+                              <div
+                                style={{
+                                  marginTop: 8,
+                                  padding: "6px 8px",
+                                  borderRadius: 4,
+                                  backgroundColor: "#f9fafb",
+                                  border: "1px solid #e5e7eb",
+                                  fontSize: "0.8rem",
+                                  maxHeight: 160,
+                                  overflowY: "auto",
+                                  whiteSpace: "pre-wrap",
+                                }}
+                              >
+                                {(() => {
+                                  const ctx = msg.sources!.find(
+                                    (s, sIdx) =>
+                                      (s.ref ?? sIdx + 1) === activeContext.ref
+                                  );
+                                  return ctx?.text || "暂无原文片段。";
+                                })()}
+                              </div>
+                            )}
                         </div>
                       )}
                     </div>

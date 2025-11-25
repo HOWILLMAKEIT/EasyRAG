@@ -34,6 +34,7 @@ class AskRequest(BaseModel):
 
 class ContextChunk(BaseModel):
     """引用片段：来源、页/节、文本内容。"""
+    ref: int
     source: str
     page: Optional[str] = None
     text: str
