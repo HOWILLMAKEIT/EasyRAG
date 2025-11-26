@@ -31,6 +31,14 @@
 
 ---
 
+## 架构图
+
+<p align="center">
+  <img src="assert/项目结构.png" alt="EasyRAG 架构图" width="720" />
+</p>
+
+---
+
 <p align="center" style="margin-top: -8px;">
   <a href="#快速开始">快速开始</a>
   · <a href="#api-速览">API</a>
