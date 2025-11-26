@@ -28,11 +28,6 @@
 - 嵌入：通义千问 Qwen（DashScope，text-embedding-v4，固定 1024 维）
 - 生成：DeepSeek-V3.2-Exp 的非思考模式
 - 前端：Vite + React（TS），提供知识库管理 + 对话问答页面
-
----
-
-## 架构图
-
 <p align="center">
   <img src="assert/项目结构.png" alt="EasyRAG 架构图" width="720" />
 </p>
