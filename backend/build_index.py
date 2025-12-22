@@ -32,9 +32,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--rebuild",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
         default=True,
-        help="是否全量重建索引（默认开启）",
+        help="是否全量重建索引（默认开启，可用 --no-rebuild 关闭）",
     )
     args = parser.parse_args()
 

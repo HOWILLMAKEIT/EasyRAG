@@ -120,7 +120,7 @@ backend/
   data/
     raw/            # 原始资料根目录（按知识库划分子目录 raw/<kb_id>/）
     index/          # FAISS 索引根目录（按知识库划分子目录 index/<kb_id>/）
-    # raw/_kb_meta.json  # 知识库元数据：ID -> 中文名称等
+    # raw/_kb_meta.json  # 知识库元数据：{"kbs": {"<kb_id>": {"name": "展示名称"}}}
 frontend/
   vite-react/       # 前端工程
 ```
