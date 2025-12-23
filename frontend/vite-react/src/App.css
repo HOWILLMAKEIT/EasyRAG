@@ -491,3 +491,135 @@
   background: #fef2f2; 
   color: #ef4444; 
   }
+
+.user-center-btn {
+  position: fixed;
+  top: 16px;
+  right: 18px;
+  z-index: 1200;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: none;
+  background: #ffffff;
+  color: #1f2937;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.user-center-btn:hover {
+  background: #f8fafc;
+  color: #2563eb;
+}
+
+.config-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+}
+
+.config-modal {
+  width: min(560px, 92vw);
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+}
+
+.config-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.config-close {
+  border: none;
+  background: transparent;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #64748b;
+}
+
+.config-field {
+  margin-bottom: 12px;
+}
+
+.config-field label {
+  display: block;
+  font-size: 0.85rem;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
+.config-field input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  font-size: 0.9rem;
+}
+
+.config-row {
+  display: flex;
+  gap: 8px;
+}
+
+.config-row input {
+  flex: 1;
+}
+
+.config-row button {
+  white-space: nowrap;
+  border-radius: 8px;
+  border: 1px solid #cbd5f5;
+  background: #f8fafc;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.config-message {
+  font-size: 0.85rem;
+  margin-top: 6px;
+}
+
+.config-message.error {
+  color: #dc2626;
+}
+
+.config-message.success {
+  color: #16a34a;
+}
+
+.config-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.config-btn {
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.config-btn.primary {
+  border: none;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.config-btn.secondary {
+  border: 1px solid #e2e8f0;
+  background: #f1f5f9;
+  color: #475569;
+}

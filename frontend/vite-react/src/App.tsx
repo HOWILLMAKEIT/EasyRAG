@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { FaPaperPlane, FaDatabase, FaCog,FaUpload,FaTrash,FaFile,FaAngleDoubleLeft, FaAngleDoubleRight,FaPlusCircle,FaDownload} from "react-icons/fa";
+import { FaPaperPlane, FaDatabase, FaCog,FaUpload,FaTrash,FaFile,FaAngleDoubleLeft, FaAngleDoubleRight,FaPlusCircle,FaDownload,FaUserCircle} from "react-icons/fa";
 import { v4 as uuidv4 } from 'uuid';
 import "./App.css";
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
+const DEFAULT_API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
+const DEFAULT_API_PORT = 8000;
 
 type Message = {
   role: "user" | "ai";
@@ -26,6 +27,13 @@ type KnowledgeBaseFile = {
   name: string;
   size: number;
   modified_ts: number;
+};
+
+type DesktopConfig = {
+  deepseekApiKey: string;
+  qwenApiKey: string;
+  kbRootPath: string;
+  apiPort?: number;
 };
 
 type SearchInputProps = {
@@ -84,6 +92,21 @@ function App() {
   const [kbError, setKbError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [activeContext, setActiveContext] = useState<{ msgIndex: number; ref: number } | null>(null);
+  const [apiBase, setApiBase] = useState(DEFAULT_API_BASE);
+  const [configOpen, setConfigOpen] = useState(false);
+  const [configSaving, setConfigSaving] = useState(false);
+  const [configError, setConfigError] = useState<string | null>(null);
+  const [configSuccess, setConfigSuccess] = useState<string | null>(null);
+  const [configDraft, setConfigDraft] = useState<DesktopConfig>({
+    deepseekApiKey: "",
+    qwenApiKey: "",
+    kbRootPath: "",
+    apiPort: DEFAULT_API_PORT,
+  });
+  const isDesktop = typeof window !== "undefined" && !!window.desktopApi;
+  const buildApiBase = (port?: number) => `http://127.0.0.1:${port ?? DEFAULT_API_PORT}`;
+  const isConfigComplete = (cfg: DesktopConfig) =>
+    Boolean(cfg.deepseekApiKey && cfg.qwenApiKey && cfg.kbRootPath);
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -111,6 +134,25 @@ function App() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!isDesktop || !window.desktopApi) {
+      return;
+    }
+    const loadConfig = async () => {
+      const cfg = await window.desktopApi!.getConfig();
+      const merged: DesktopConfig = {
+        deepseekApiKey: cfg.deepseekApiKey ?? "",
+        qwenApiKey: cfg.qwenApiKey ?? "",
+        kbRootPath: cfg.kbRootPath ?? "",
+        apiPort: cfg.apiPort ?? DEFAULT_API_PORT,
+      };
+      setConfigDraft(merged);
+      setApiBase(buildApiBase(merged.apiPort));
+      setConfigOpen(!isConfigComplete(merged));
+    };
+    loadConfig();
+  }, [isDesktop]);
+
   const formatSourceLabel = (s: { ref?: number; source: string; page?: string; text?: string }, idx: number) => {
     const ref = s.ref !== undefined && s.ref !== null && s.ref > 0 ? s.ref : idx + 1;
     const base = s.source || "未知来源";
@@ -121,7 +163,7 @@ function App() {
   // 加载知识库列表
   const fetchKnowledgeBases = async (preferKb?: string) => {
     try {
-      const res = await fetch(`${API_BASE}/kb`);
+      const res = await fetch(`${apiBase}/kb`);
       if (!res.ok) return;
       const data = await res.json();
       if (Array.isArray(data.items)) {
@@ -144,7 +186,7 @@ function App() {
     setKbLoading(true);
     setKbError(null);
     try {
-      const res = await fetch(`${API_BASE}/kb/${encodeURIComponent(kbId)}/files`);
+      const res = await fetch(`${apiBase}/kb/${encodeURIComponent(kbId)}/files`);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.detail ?? res.statusText);
@@ -166,7 +208,7 @@ function App() {
 
   useEffect(() => {
     fetchKnowledgeBases();
-  }, []);
+  }, [apiBase]);
 
   useEffect(() => {
     if (activeKb) {
@@ -174,7 +216,7 @@ function App() {
     } else {
       setKbFiles([]);
     }
-  }, [activeKb]);
+  }, [activeKb, apiBase]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setIngestError(null);
@@ -199,6 +241,59 @@ function App() {
     setIngestSuccess(null);
   };
 
+  const handleOpenConfig = () => {
+    setConfigError(null);
+    setConfigSuccess(null);
+    setConfigOpen(true);
+  };
+
+  const handleSelectKbRoot = async () => {
+    if (!window.desktopApi) return;
+    const selected = await window.desktopApi.selectKbRoot();
+    if (selected) {
+      setConfigDraft((prev) => ({ ...prev, kbRootPath: selected }));
+    }
+  };
+
+  const handleSaveConfig = async () => {
+    if (!window.desktopApi) return;
+    setConfigError(null);
+    setConfigSuccess(null);
+    const nextConfig: DesktopConfig = {
+      deepseekApiKey: configDraft.deepseekApiKey.trim(),
+      qwenApiKey: configDraft.qwenApiKey.trim(),
+      kbRootPath: configDraft.kbRootPath.trim(),
+      apiPort: Number(configDraft.apiPort || DEFAULT_API_PORT),
+    };
+    if (!isConfigComplete(nextConfig)) {
+      setConfigError("请填写完整配置");
+      return;
+    }
+    if (!Number.isFinite(nextConfig.apiPort) || nextConfig.apiPort! <= 0 || nextConfig.apiPort! > 65535) {
+      setConfigError("API 端口无效");
+      return;
+    }
+    setConfigSaving(true);
+    try {
+      const saved = await window.desktopApi.saveConfig(nextConfig);
+      const merged: DesktopConfig = {
+        deepseekApiKey: saved.deepseekApiKey ?? "",
+        qwenApiKey: saved.qwenApiKey ?? "",
+        kbRootPath: saved.kbRootPath ?? "",
+        apiPort: saved.apiPort ?? DEFAULT_API_PORT,
+      };
+      setConfigDraft(merged);
+      setApiBase(buildApiBase(merged.apiPort));
+      setConfigOpen(false);
+      setConfigSuccess("配置已保存");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "保存配置失败";
+      setConfigError(message);
+    } finally {
+      setConfigSaving(false);
+    }
+  };
+
   const handleUpload = async () => {
     if (files.length === 0) {
       setIngestError("请至少选择一个文件");
@@ -219,7 +314,7 @@ function App() {
 
     try {
       const kb = activeKb || "default";
-      const res = await fetch(`${API_BASE}/kb/${encodeURIComponent(kb)}/upload`, {
+      const res = await fetch(`${apiBase}/kb/${encodeURIComponent(kb)}/upload`, {
         method: "POST",
         body: formData,
       });
@@ -249,7 +344,7 @@ const handleCreateKb = async () => {
     const name = rawName.trim();
     if (!name) return;
     try {
-      const res = await fetch(`${API_BASE}/kb`, {
+      const res = await fetch(`${apiBase}/kb`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
@@ -287,7 +382,7 @@ const handleSelectKb = (name: string) => {
     if (!ok) return;
 
     try {
-      const res = await fetch(`${API_BASE}/kb/${encodeURIComponent(kbId)}`, {
+      const res = await fetch(`${apiBase}/kb/${encodeURIComponent(kbId)}`, {
         method: "DELETE",
       });
       if (!res.ok) {
@@ -315,7 +410,7 @@ const handleSelectKb = (name: string) => {
     ); 
     if (!confirmDelete) return;
     try {
-      const res = await fetch(`${API_BASE}/kb/${encodeURIComponent(kbId)}/files`, {
+      const res = await fetch(`${apiBase}/kb/${encodeURIComponent(kbId)}/files`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ names: [fileName] }),
@@ -455,7 +550,7 @@ const handleSelectKb = (name: string) => {
     let aiMessage: Message = { role: "ai", content: "..." }; 
     try {
       const kb = activeKb || "default";
-      const res = await fetch(`${API_BASE}/ask`, {
+      const res = await fetch(`${apiBase}/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -493,6 +588,8 @@ const handleSelectKb = (name: string) => {
     }
   };
 
+  const configRequired = isDesktop && !isConfigComplete(configDraft);
+
   //类名数组，用于管理侧边栏是否收起
 const sidebarClasses = ["sidebar"];
 
@@ -501,6 +598,11 @@ if (isSidebarCollapsed) {
 }
   return (
     <div className="app-container">
+      {isDesktop && (
+        <button className="user-center-btn" onClick={handleOpenConfig} title="配置">
+          <FaUserCircle />
+        </button>
+      )}
       <aside className={sidebarClasses.join(" ")}>
         <div className="sidebar-title">
           <span className="nav-text">EasyRAG 助手</span>
@@ -854,6 +956,98 @@ if (isSidebarCollapsed) {
         )}
       
       </main>
+
+      {isDesktop && configOpen && (
+        <div className="config-modal-backdrop">
+          <div className="config-modal">
+            <div className="config-modal-header">
+              <h3>应用配置</h3>
+              {!configRequired && (
+                <button
+                  type="button"
+                  className="config-close"
+                  onClick={() => setConfigOpen(false)}
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+            <div className="config-field">
+              <label>DeepSeek API Key</label>
+              <input
+                type="password"
+                value={configDraft.deepseekApiKey}
+                onChange={(e) =>
+                  setConfigDraft((prev) => ({ ...prev, deepseekApiKey: e.target.value }))
+                }
+              />
+            </div>
+            <div className="config-field">
+              <label>Qwen API Key</label>
+              <input
+                type="password"
+                value={configDraft.qwenApiKey}
+                onChange={(e) =>
+                  setConfigDraft((prev) => ({ ...prev, qwenApiKey: e.target.value }))
+                }
+              />
+            </div>
+            <div className="config-field">
+              <label>知识库根目录</label>
+              <div className="config-row">
+                <input
+                  type="text"
+                  value={configDraft.kbRootPath}
+                  onChange={(e) =>
+                    setConfigDraft((prev) => ({ ...prev, kbRootPath: e.target.value }))
+                  }
+                />
+                <button type="button" onClick={handleSelectKbRoot}>
+                  选择目录
+                </button>
+              </div>
+            </div>
+            <div className="config-field">
+              <label>API 端口</label>
+              <input
+                type="number"
+                min="1"
+                max="65535"
+                value={configDraft.apiPort ?? ""}
+                onChange={(e) =>
+                  setConfigDraft((prev) => ({
+                    ...prev,
+                    apiPort: e.target.value ? Number(e.target.value) : undefined,
+                  }))
+                }
+              />
+            </div>
+            {configError && <p className="config-message error">{configError}</p>}
+            {configSuccess && <p className="config-message success">{configSuccess}</p>}
+            <div className="config-actions">
+              {!configRequired && (
+                <button
+                  type="button"
+                  className="config-btn secondary"
+                  onClick={() => setConfigOpen(false)}
+                  disabled={configSaving}
+                >
+                  取消
+                </button>
+              )}
+              <button
+                type="button"
+                className="config-btn primary"
+                onClick={handleSaveConfig}
+                disabled={configSaving}
+              >
+                {configSaving ? "保存中..." : "保存配置"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

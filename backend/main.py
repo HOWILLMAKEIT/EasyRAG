@@ -37,11 +37,19 @@ def create_app() -> FastAPI:
             "http://localhost:5173",
             "http://127.0.0.1:5173",
         ]
+    cors_credentials_env = os.getenv("CORS_ALLOW_CREDENTIALS", "").strip().lower()
+    if cors_credentials_env:
+        allow_credentials = cors_credentials_env not in {"0", "false", "no"}
+    else:
+        allow_credentials = True
+    if "*" in allow_origins:
+        # Avoid invalid CORS headers when allowing any origin.
+        allow_credentials = False
 
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allow_origins,
-        allow_credentials=True,
+        allow_credentials=allow_credentials,
         allow_methods=["*"],
         allow_headers=["*"],
     )
