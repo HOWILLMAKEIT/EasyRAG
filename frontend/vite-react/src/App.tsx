@@ -97,6 +97,9 @@ function App() {
   const [configSaving, setConfigSaving] = useState(false);
   const [configError, setConfigError] = useState<string | null>(null);
   const [configSuccess, setConfigSuccess] = useState<string | null>(null);
+  const [createKbOpen, setCreateKbOpen] = useState(false);
+  const [createKbName, setCreateKbName] = useState("");
+  const [createKbError, setCreateKbError] = useState<string | null>(null);
   const [configDraft, setConfigDraft] = useState<DesktopConfig>({
     deepseekApiKey: "",
     qwenApiKey: "",
@@ -168,8 +171,15 @@ function App() {
       const data = await res.json();
       if (Array.isArray(data.items)) {
         setKnowledgeBases(data.items);
-        const idToUse = preferKb || activeKb || (data.items[0]?.id ?? "");
-        if (idToUse && idToUse !== activeKb) {
+        const ids = new Set(data.items.map((kb: KnowledgeBase) => kb.id));
+        const fallback = data.items[0]?.id ?? "";
+        let idToUse = preferKb || activeKb || fallback;
+        if (idToUse && !ids.has(idToUse)) {
+          idToUse = fallback;
+        }
+        if (!idToUse) {
+          setActiveKb("");
+        } else if (idToUse !== activeKb) {
           setActiveKb(idToUse);
         }
       }
@@ -284,6 +294,9 @@ function App() {
       };
       setConfigDraft(merged);
       setApiBase(buildApiBase(merged.apiPort));
+      setKnowledgeBases([]);
+      setKbFiles([]);
+      setActiveKb("");
       setConfigOpen(false);
       setConfigSuccess("配置已保存");
     } catch (e) {
@@ -338,11 +351,7 @@ function App() {
     }
   };
 
-const handleCreateKb = async () => { 
-    const rawName = window.prompt("请输入新的知识库名称（字母、数字、-、_）");
-    if (!rawName) return;
-    const name = rawName.trim();
-    if (!name) return;
+const createKnowledgeBase = async (name: string) => {
     try {
       const res = await fetch(`${apiBase}/kb`, {
         method: "POST",
@@ -362,6 +371,32 @@ const handleCreateKb = async () => {
     } catch (e) {
       const msg = e instanceof Error ? e.message : "创建知识库失败";
       setIngestError(msg);
+      throw new Error(msg);
+    }
+  };
+
+  const handleCreateKb = () => {
+    setCreateKbName("");
+    setCreateKbError(null);
+    setCreateKbOpen(true);
+  };
+
+  const handleCreateKbSubmit = async () => {
+    const name = createKbName.trim();
+    if (!name) {
+      setCreateKbError("请输入知识库名称");
+      return;
+    }
+    setCreateKbError(null);
+    setIngestError(null);
+    setIngestSuccess(null);
+    try {
+      await createKnowledgeBase(name);
+      setCreateKbOpen(false);
+      setCreateKbName("");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "创建知识库失败";
+      setCreateKbError(msg);
     }
   };
 
@@ -1043,6 +1078,57 @@ if (isSidebarCollapsed) {
                 disabled={configSaving}
               >
                 {configSaving ? "保存中..." : "保存配置"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {createKbOpen && (
+        <div className="config-modal-backdrop">
+          <div className="config-modal">
+            <div className="config-modal-header">
+              <h3>新建知识库</h3>
+              <button
+                type="button"
+                className="config-close"
+                onClick={() => setCreateKbOpen(false)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="config-field">
+              <label>知识库名称</label>
+              <input
+                type="text"
+                value={createKbName}
+                onChange={(e) => setCreateKbName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleCreateKbSubmit();
+                  }
+                }}
+                placeholder="例如：计算机网络"
+              />
+            </div>
+            {createKbError && <p className="config-message error">{createKbError}</p>}
+            <div className="config-actions">
+              <button
+                type="button"
+                className="config-btn secondary"
+                onClick={() => setCreateKbOpen(false)}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                className="config-btn primary"
+                onClick={handleCreateKbSubmit}
+                disabled={!createKbName.trim()}
+              >
+                创建
               </button>
             </div>
           </div>

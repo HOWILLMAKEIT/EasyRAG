@@ -11,10 +11,19 @@
 __pycache__/
 *.pyc
 backend/.venv/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
 
 # Node / Frontend
+**/node_modules/
 frontend/vite-react/node_modules/
 frontend/vite-react/dist/
+frontend/vite-react/.vite/
+desktop/dist/
 
 # RAG data (do not version)
 backend/data/index/
@@ -29,3 +38,8 @@ Thumbs.db
 *.docx
 
 backend/logs/
+
+backend/dist/
+desktop/node_modules/
+
+backend/build/

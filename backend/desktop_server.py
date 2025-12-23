@@ -6,10 +6,13 @@ import os
 
 import uvicorn
 
+from main import create_app
+
 
 def main() -> None:
     port = int(os.getenv("EASYRAG_PORT", "8000"))
-    uvicorn.run("main:app", host="127.0.0.1", port=port, reload=False)
+    app = create_app()
+    uvicorn.run(app, host="127.0.0.1", port=port, reload=False)
 
 
 if __name__ == "__main__":

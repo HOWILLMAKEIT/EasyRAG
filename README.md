@@ -37,6 +37,7 @@
 
 <p align="center" style="margin-top: -8px;">
   <a href="#快速开始">快速开始</a>
+  · <a href="#本地化应用设计electron">桌面端设计</a>
   · <a href="#api-速览">API</a>
   · <a href="#特性与实现要点">特性</a>
   · <a href="#目录结构">结构</a>
@@ -45,32 +46,14 @@
 
 ## 快速开始
 
-1) 安装后端依赖（建议 Conda on Windows）
+先在 `backend/.env` 填入：
+`QWEN_API_KEY`、`DEEPSEEK_API_KEY`（可选：`DEEPSEEK_MODEL`、`DEEPSEEK_BASE_URL`）。
+
+### 网页端（开发/部署）
 ```bash
-conda create -n easyrag-py311 python=3.11 -y
-conda activate easyrag-py311
-conda install -c conda-forge faiss-cpu -y
+# 后端
 cd backend
 python -m pip install -U -r requirements.txt
-```
-
-2) 配置环境变量（backend/.env）
-- 必填：`QWEN_API_KEY`、`DEEPSEEK_API_KEY`
-- 可选：`DEEPSEEK_MODEL`（默认 `deepseek-chat`）、`DEEPSEEK_BASE_URL`（默认 `https://api.deepseek.com`）
-- 路径：`INDEX_DIR=./data/index`、`RAW_DIR=./data/raw`（已自动锚定到 backend 目录）
-- 注意：不需要 `EMBED_DIM`，已固定为 1024
-
-3) 创建知识库并构建索引
-```bash
-# 在浏览器或直接调用接口创建知识库，例如 ID 为 my_kb
-# 也可以直接在文件夹下建目录 backend/data/raw/my_kb 并放入 .pdf/.pptx/.md
-cd backend
-python build_index.py --kb my_kb --rebuild
-```
-
-4) 启动后端与前端
-```bash
-# 后端（backend 目录）
 uvicorn main:app --reload --port 8000 --reload-exclude data
 
 # 前端（另一个终端）
@@ -79,7 +62,36 @@ npm install
 npm run dev  # http://localhost:5173
 ```
 
+### 桌面端（本地化应用）
+```bash
+# 1) 构建前端
+cd frontend/vite-react && npm run build
+
+# 2) 打包后端为 exe（含 tiktoken 资源）
+cd ../../backend && pyinstaller desktop_server.spec --distpath dist
+
+# 3) 打包 Electron
+cd ../desktop && npm install && npm run build
+```
+安装包输出：
+- `desktop/dist/EasyRAG Setup 0.1.0.exe`
+- `desktop/dist/win-unpacked/EasyRAG.exe`
+
+首次启动在右上角“用户中心”配置：DeepSeek Key、Qwen Key、知识库根目录与端口。
+
 ---
+
+## 本地化应用设计（Electron）
+
+- 复用现有 Vite + React UI，不重写前端页面。
+- Electron 主进程负责：
+  - 读取/保存配置（electron-store + AES 简易加密）。
+  - 启动后端 `backend.exe`，并注入环境变量：
+    `DEEPSEEK_API_KEY`、`QWEN_API_KEY`、`RAW_DIR`、`INDEX_DIR`、`EASYRAG_PORT`。
+- 知识库根目录可由用户选择：
+  - 自动创建 `raw/` 与 `index/` 子目录。
+  - 切换目录后立即刷新知识库列表。
+- 渲染进程通过 `http://127.0.0.1:<port>` 调用本地 API，端口可在设置中修改。
 
 ## API 速览
 
