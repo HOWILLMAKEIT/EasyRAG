@@ -46,7 +46,7 @@
 
 ## 快速开始
 
-先在 `backend/.env` 填入：
+网页端需要先在 `backend/.env` 填入：
 `QWEN_API_KEY`、`DEEPSEEK_API_KEY`（可选：`DEEPSEEK_MODEL`、`DEEPSEEK_BASE_URL`）。
 
 ### 网页端（开发/部署）
