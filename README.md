@@ -63,6 +63,9 @@ npm run dev  # http://localhost:5173
 ```
 
 ### 桌面端（本地化应用）
+项目可执行文件/安装包可以在https://github.com/HOWILLMAKEIT/EasyRAG/releases/ 中获取
+以下是具体的构建方式
+
 ```bash
 # 1) 构建前端
 cd frontend/vite-react && npm run build
